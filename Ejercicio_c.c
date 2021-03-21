@@ -9,7 +9,7 @@ int main(void)
 {
     double a, suma, vv, Avv;     //a es el autovalor dominante, suma es un auxiliar donde se almacenan valores, vv es el producto de v*v y Avv es Av*v
     double A[2][2];  //A es la matriz que vamos a diagonalizar
-    double v[2], Av[2];  //v es el autovector que obtendremos de forma iterativa, Av es el producto de A y v
+    double v[2], Av[2];  //v es el autovector que obtendremos de forma iterativa, Av almacena el producto de A y v
     int i, j, k; //contadores
 
     A[0][0]=9;
@@ -20,7 +20,7 @@ int main(void)
     v[0]=1; //Valores iniciales de v
     v[1]=1;
 
-    for(k=0; k<=5; k++) //k es el número de iteraciones que se reaizan para determinar v mediante A*v iteradamente
+    for(k=0; k<=10; k++) //k es el número de iteraciones que se reaizan para determinar v mediante A*v iteradamente
     {
         for (i = 0; i<2; i++) //se recorre cada fila de matriz A
         {
@@ -28,12 +28,14 @@ int main(void)
                 for (j = 0; j < 2; j++) //Como v no es matriz de varias columnas no es necesario otro bucle for para recorrerlas, este bucle simplemente se mueve entre las columnas de A
                 {
                     suma += A[i][j] * v[j];
-                }
-                v[i] = suma; 
+                } 
+                Av[i]=suma;
         }
+        v[0] = Av[0];
+        v[1] = Av[1];
     }    
     
-
+    
     for (i = 0; i<2; i++) //Producto de A*v
     {
         suma = 0; 
