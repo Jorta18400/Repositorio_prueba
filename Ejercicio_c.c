@@ -58,7 +58,7 @@ int main(void)
         vv += v[i] * v[i];
     }
 
-    a=Avv/vv;
+    a=Avv/vv; //El autovalor se calcula mediante el coeficiente de Rayleight
     printf("El autovalor dominantes es %lf\n", a);
     
 
