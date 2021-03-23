@@ -61,7 +61,8 @@ int main(void)
     a=Avv/vv; //El autovalor se calcula mediante el coeficiente de Rayleight
     printf("El autovalor dominantes es %lf\n", a);
     
-
+    //Los autovalores de la matriz A calculados analíticamente son 5 y 10, luego el resultado debería ser a=10. Conforme aumentamos el número de iteraciones "a" se aproxima
+    //a este valor, alcanzando a=10.00 cuando escribimos en el bucle for que k<=10.
     return 0;
     
 }
