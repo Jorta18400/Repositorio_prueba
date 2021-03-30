@@ -36,7 +36,7 @@ int main(void)
     wy = (double*) malloc(n*sizeof(double));
     m = (double*) malloc(n*sizeof(double));
 
-    //leemos las condiciones iniciales 
+    //leemos las condiciones iniciales [NO SE POR QUE PERO NO LEE]
     for(i=0; i<n; i++)
     {
         fscanf(fcond, "%lf\t%lf\t%lf\t%lf\t%lf", &m[i], &rx[i], &ry[i], &vx[i], &vy[i]);
