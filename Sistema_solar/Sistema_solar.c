@@ -42,7 +42,7 @@ int main(void)
     //leemos las condiciones iniciales 
     for(i=0; i<n; i++)
     {
-        fscanf(fcond, "%lf\t%lf\t%lf\t%lf\t%lf", &m[i], &rx[i], &ry[i], &vx[i], &vy[i]);
+        fscanf(fcond, "%lf\t%lf\t%lf\t%lf\t%lf", &(m[i]), &(rx[i]), &(ry[i]), &(vx[i]), &(vy[i]));
     }
     
     //Tenemos que cambiar las unidades de las condiciones iniciales a las que usaremos en la simulación
@@ -51,12 +51,14 @@ int main(void)
     //Ahora escribimos las primeras posiciones (las iniciales) en el fichero de posiciones
     for(i=0;i<n;i++)
     {
-        fprintf(fposiciones, "%lf\t%lf\n", rx[i], ry[i]);
+        fprintf(fposiciones, "%e\t%e\n", rx[i], ry[i]);
     }
     fprintf(fposiciones, "\n"); //Aquí introduzco un salto de línea para dejar un espacio entre cada tanda de posiciones
 
     //Lo suyo ahora sería calcular las aceleraciones para el tiempo inicial a partir de las fuerzas entre cuerpos
     aceleracion(rx,ry,ax,ay,m,n);
+
+    
 
 
 
@@ -93,9 +95,9 @@ void cambiounidades(double *rx, double *ry, double *vx, double *vy, double *m, i
 
     for(i=0;i<n;i++)  //Conversiones de unidades que se dan en el pdf
     {
-        rx[i]=rx[i]/c;
-        ry[i]=ry[i]/c;
-        m[i]=m[i]/Ms;
+        rx[i]/=c;
+        ry[i]/=c;
+        m[i]/=Ms;
         vx[i]=vx[i]*(1)/(c*sqrt(G*Ms/pow(c,3.0)));
         vy[i]=vy[i]*(1)/(c*sqrt(G*Ms/pow(c,3.0)));
     }
