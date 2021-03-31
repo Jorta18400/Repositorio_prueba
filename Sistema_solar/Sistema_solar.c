@@ -33,6 +33,8 @@ int main(void)
     ry = (double*) malloc(n*sizeof(double));
     vx = (double*) malloc(n*sizeof(double));
     vy = (double*) malloc(n*sizeof(double));
+    ax = (double*) malloc(n*sizeof(double));
+    ay = (double*) malloc(n*sizeof(double));
     wx = (double*) malloc(n*sizeof(double));
     wy = (double*) malloc(n*sizeof(double));
     m = (double*) malloc(n*sizeof(double));
