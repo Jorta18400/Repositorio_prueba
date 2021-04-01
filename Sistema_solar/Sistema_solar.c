@@ -5,11 +5,11 @@
 //Programa que simula el comportamiento del sistema solar 
 ////////////////////////////
 
-void cambiounidades (double *rx, double *ry, double *vx, double *vy, double *m, int n);  //Función para cambiar las unidades de las condiciones iniciales 
+void cambiounidades (double *vx, double *vy, double *m, int n);  //Función para cambiar las unidades de las condiciones iniciales 
 void aceleracion (double *rx, double *ry, double *ax, double *ay, double *m, int n); //Función para calcular las aceleraciones de cada cuerpo en un instante t
 void posicion (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *wx, double *wy,int n, double hmedio, double h); //Función para sacar w(t) y r(t+h)
 void velocidad (double *vx, double *vy, double *wx, double *wy, double *ax, double *ay, int n, double hmedio); //Función pa sacar v(t+h)
-void energias (double *rx, double *ry, double *vx, double *vy, double *m, double energia, int n); //Función para sacar la energia en un tiempo t y ver si se mantiene cte
+void energias (double *rx, double *ry, double *vx, double *vy, double *m, double energia, int n, double V, double T); //Función para sacar la energia en un tiempo t y ver si se mantiene cte
 
 int main(void)
 { 
@@ -17,13 +17,15 @@ int main(void)
     int i;  //contador
     int n; //n es número de planetas
     double *rx, *vx, *ax, *ry, *vy, *ay, *wx, *wy, *m; //posiciones, aceleraciones, velocidades, momentos angulares, masa
-    FILE *fposiciones, *fvelocidades, *fcond, *fenergia; 
+    double V,T;
+    FILE *fposiciones, *fvelocidades, *fcond, *fenergia, *faceleracion; 
 
     //Abrimos los ficheros, la estructura de estos es: #masa #posicion x #posicion y  #velocidad x #velocidad y
     fposiciones=fopen("Posiciones.txt", "w");
     fvelocidades=fopen("Velocidades.txt","w");
     fcond=fopen("Condiciones_iniciales.txt","r");
     fenergia=fopen("Energias.txt", "w");
+    faceleracion=fopen("Aceleraciones.txt", "w");
   
     //Definimos parámetros
     h=0.001;
@@ -48,8 +50,8 @@ int main(void)
         fscanf(fcond, "%lf\t%lf\t%lf\t%lf\t%lf", &(m[i]), &(rx[i]), &(ry[i]), &(vx[i]), &(vy[i]));
     }
     
-    //Tenemos que cambiar las unidades de las condiciones iniciales a las que usaremos en la simulación
-    cambiounidades(rx,ry,vx,vy,m,n);
+    //Tenemos que cambiar las unidades de las condiciones iniciales a las que usaremos en la simulación, no cambiamos r que ya viene en Au
+    cambiounidades(vx,vy,m,n);
 
     //Ahora escribimos las primeras posiciones (las iniciales) en el fichero de posiciones
     for(i=0;i<n;i++)
@@ -58,14 +60,27 @@ int main(void)
     }
     fprintf(fposiciones, "\n"); //Aquí introduzco un salto de línea para dejar un espacio entre cada tanda de posiciones
 
+    for(i=0;i<n;i++)
+    {
+        fprintf(fvelocidades, "%e\t%e\n", vx[i], vy[i]); //Escribo velocidades pa ver, provisional
+    }
+    fprintf(fvelocidades, "\n");
+
     //Lo suyo ahora sería calcular las aceleraciones para el tiempo inicial a partir de las fuerzas entre cuerpos
     aceleracion(rx,ry,ax,ay,m,n);
+
+    for(i=0;i<n;i++)
+    {
+        fprintf(faceleracion, "%e\t%e\n", ax[i], ay[i]); //Escribo aceleraciones pa ver, provisional
+    }
+    fprintf(faceleracion, "\n");
+
 
     //Ahora vamos a comenzar un bucle while que ira avanzando en el tiempo de h en h y repitiendo el algoritmo de Verlet
     t=0.0+h;
     while(t<tmax)
     {
-        energias(rx, ry, vx, vy, m, energia, n); //Aquí saco las energias para este t antes de sacar las variables en t+h
+        energias(rx, ry, vx, vy, m, energia, n, V, T); //Aquí saco las energias para este t antes de sacar las variables en t+h
 
         posicion(rx, ry, vx, vy, ax, ay, wx, wy, n, hmedio, h); //Saco w(t) y r(t+h)
 
@@ -82,9 +97,22 @@ int main(void)
 
         for(i=0;i<n;i++) //Ahora voy a escribir la energia para t en el fichero de energias para observar su evolucion
         {
-            fprintf(fenergia, "%e\n", energia);
+            fprintf(fenergia, "%e\t%e\t%e\n", energia, V, T);
         }
 
+
+        for(i=0;i<n;i++)
+        {
+            fprintf(faceleracion, "%e\t%e\n", ax[i], ay[i]); //Escribo aceleraciones pa ver, provisional
+        }
+        fprintf(faceleracion, "\n");
+
+        for(i=0;i<n;i++)
+        {
+            fprintf(fvelocidades, "%e\t%e\n", vx[i], vy[i]); //Escribo aceleraciones pa ver, provisional
+        }
+        fprintf(fvelocidades, "\n");
+        
         t+=h; //Aumento t en un paso y volvemos a empezar con el bucle, así hasta que se llegue al tiempo máximo
     }
 
@@ -92,6 +120,7 @@ int main(void)
     fclose(fvelocidades);
     fclose(fcond);
     fclose(fenergia);
+    fclose(faceleracion);
     free(rx);
     free(ry);
     free(vx);
@@ -105,22 +134,20 @@ int main(void)
 
 //Funciones empleadas
 
-void cambiounidades(double *rx, double *ry, double *vx, double *vy, double *m, int n)
+void cambiounidades(double *vx, double *vy, double *m, int n)
 {
     int i; //contador
-    double c, Ms, G; //Distancia tierra-sol, masa sol y cte de gravitacion
+    double c, Ms, G; //Distancia tierra-sol, masa sol, cte de gravitacion
 
     c=1.496e11;
     Ms=1988500e24;
     G=6.67e-11;
 
-    for(i=0;i<n;i++)  //Conversiones de unidades que se dan en el pdf
+        for(i=0;i<n;i++)  //Las cond iniciales vienen en Au, Au/dia y kg, cambiamos a lo que nos dice el pdf (r ya esta asi que no se toca)
     {
-        rx[i]/=c;
-        ry[i]/=c;
         m[i]/=Ms;
-        vx[i]=vx[i]*(1)/(c*sqrt(G*Ms/pow(c,3.0)));
-        vy[i]=vy[i]*(1)/(c*sqrt(G*Ms/pow(c,3.0)));
+        vx[i]=vx[i]/sqrt(G*Ms/pow(c,3.0));
+        vy[i]=vy[i]/sqrt(G*Ms/pow(c,3.0));
     }
 
     return ;
@@ -130,7 +157,8 @@ void cambiounidades(double *rx, double *ry, double *vx, double *vy, double *m, i
 void aceleracion (double *rx, double *ry, double *ax, double *ay, double *m, int n)
 {
     int i,j; //contadores
-    double dist, axj, ayj; //dist es la distancia entre dos cuerpos y axj y ayj las componentes de aceleracion debidas a un cuerpo j concreto
+    double dist, axj, ayj; //dist es la distancia entre dos cuerpos, axj y ayj son las componentes de aceleracion debidas a un cuerpo j concreto
+
 
     i=0;
     while(i<n) //En este while vamos a calcular la aceleración de un cuerpo i debido a la influencia de otro cuerpo j y a sumarlas para obtener la total
@@ -149,16 +177,18 @@ void aceleracion (double *rx, double *ry, double *ax, double *ay, double *m, int
                 axj=(m[j]*(rx[i]-rx[j]))/pow(dist,3);  
                 ayj=(m[j]*(ry[i]-ry[j]))/pow(dist,3);
 
-                ax[i]=ax[i]+axj;    //Añado las aceleraciones debidas al cuerpo j al total
-                ay[i]=ay[i]+ayj;
+                ax[i]=ax[i]+axj;    //Añado las aceleraciones debidas al cuerpo j al total, las multiplico por 2 por la 3 ley de newton,
+                ay[i]=ay[i]+ayj;    // ya que no estoy recorriendo todos los cuerpos
                 
                 j++;
             }
-            else j++; //En caso de que coincidan i y j no hay aportacion ninguna y pasamos al siguiente cuerpo
+            else j++; //Este es el caso en que i=j y no hay aporte
+            
+             
         }
 
-        ax[i]=-ax[i];  //Cambiamos ahora de signo una vez en vez de hacer n cambios
-        ay[i]=-ay[i];
+        ax[i]=-ax[i];  //Cambiamos ahora de signo una vez en vez de hacer n cambios 
+        ay[i]=-ay[i];  
         i++;
     }
 
@@ -194,12 +224,13 @@ void velocidad (double *vx, double *vy, double *wx, double *wy, double *ax, doub
     return ;
 }
 
-void energias (double *rx, double *ry, double *vx, double *vy, double *m, double energia, int n) 
+void energias (double *rx, double *ry, double *vx, double *vy, double *m, double energia, int n, double V, double T) 
 {
     int i, j; //Contadores
-    double T, V, Vj; //Energía cinética, potencial, y potencial debida a un cuerpo j específico
+    double Vj; //Energía cinética, potencial, y potencial debida a un cuerpo j específico
     double dist; //Distancia entre dos cuerpos
 
+    energia=0.0;
     V=0.0;
     i=0;
     while(i<n) //While para sacar el potencial de un cuerpo i
@@ -212,20 +243,20 @@ void energias (double *rx, double *ry, double *vx, double *vy, double *m, double
                 dist=pow(rx[i]-rx[j],2) + pow(ry[i]-ry[j],2);
                 dist=sqrt(dist);
 
-                Vj=m[j]/dist;
-                V+=Vj;
+                Vj=(m[j]*m[i])/dist; 
+                V=V+Vj;
                 j++;
             }
             else j++;
         }
         i++;
     }
-    V=-V; //De nuevo hacemos un solo cambio de signo en vez de n. No reseteamos V porque queremos la suma de todos los V_i
+    V=-V/2; //De nuevo hacemos un solo cambio de signo en vez de n. No reseteamos V porque queremos la suma de todos los V_i. Dividimos V/2 porque tuvimos en cuenta dos veces las interacciones
 
     T=0.0;
     for(i=0;i<n;i++) //Con este for saco las energías cinéticas
     {
-        T+=0.5*m[i]*(pow(vx[i],2)+pow(vy[i],2));
+        T = T+0.5*m[i]*(pow(vx[i],2)+pow(vy[i],2));
     }
 
     energia=T+V;
