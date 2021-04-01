@@ -146,8 +146,8 @@ void cambiounidades(double *vx, double *vy, double *m, int n)
         for(i=0;i<n;i++)  //Las cond iniciales vienen en Au, Au/dia y kg, cambiamos a lo que nos dice el pdf (r ya esta asi que no se toca)
     {
         m[i]/=Ms;
-        vx[i]=vx[i]/sqrt(G*Ms/pow(c,3.0));
-        vy[i]=vy[i]/sqrt(G*Ms/pow(c,3.0));
+        vx[i]=vx[i]*58.151;
+        vy[i]=vy[i]*58.151;
     }
 
     return ;
@@ -230,8 +230,9 @@ void energias (double *rx, double *ry, double *vx, double *vy, double *m, double
     double Vj; //Energía cinética, potencial, y potencial debida a un cuerpo j específico
     double dist; //Distancia entre dos cuerpos
 
-    energia=0.0;
     V=0.0;
+    T=0.0;
+    energia=0.0;
     i=0;
     while(i<n) //While para sacar el potencial de un cuerpo i
     {
@@ -244,7 +245,7 @@ void energias (double *rx, double *ry, double *vx, double *vy, double *m, double
                 dist=sqrt(dist);
 
                 Vj=(m[j]*m[i])/dist; 
-                V=V+Vj;
+                V+=Vj;
                 j++;
             }
             else j++;
@@ -253,13 +254,12 @@ void energias (double *rx, double *ry, double *vx, double *vy, double *m, double
     }
     V=-V/2; //De nuevo hacemos un solo cambio de signo en vez de n. No reseteamos V porque queremos la suma de todos los V_i. Dividimos V/2 porque tuvimos en cuenta dos veces las interacciones
 
-    T=0.0;
     for(i=0;i<n;i++) //Con este for saco las energías cinéticas
     {
-        T = T+0.5*m[i]*(pow(vx[i],2)+pow(vy[i],2));
+        T+=0.5*m[i]*(pow(vx[i],2)+pow(vy[i],2));
     }
 
-    energia=T+V;
+    energia = T+V;
 
     return ;
 }
