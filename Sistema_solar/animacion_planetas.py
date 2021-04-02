@@ -29,6 +29,7 @@
 # donde xi_j es la componente x del planeta i-ésimo en el instante de
 # tiempo j-ésimo, e yi_j lo mismo en la componente y. El programa asume que
 # el nº de planetas es siempre el mismo.
+# ¡OJO! Los datos están separados por comas.
 # 
 # Si solo se especifica un instante de tiempo, se genera una imagen en pdf
 # en lugar de una animación
@@ -50,14 +51,14 @@ file_in = "Posiciones.txt" # Nombre del fichero de datos
 file_out = "planetas" # Nombre del fichero de salida (sin extensión)
 
 # Límites de los ejes X e Y
-x_min = -50
-x_max = 50
-y_min = -50 
-y_max = 50
+x_min = -10
+x_max = 10
+y_min = -35
+y_max = 35
 
-interval = 100 # Tiempo entre fotogramas en milisegundos
+interval = 8 # Tiempo entre fotogramas en milisegundos
 show_trail = True # Muestra la "estela" del planeta
-trail_width = 1 # Ancho de la estela
+trail_width = 0.75 # Ancho de la estela
 save_to_file = False # False: muestra la animación por pantalla,
                      # True: la guarda en un fichero
 dpi = 150 # Calidad del vídeo de salida (dots per inch)
@@ -65,8 +66,8 @@ dpi = 150 # Calidad del vídeo de salida (dots per inch)
 # Radio del planeta, en las mismas unidades que la posición
 # Puede ser un número (el radio de todos los planetas) o una lista con
 # el radio de cada uno
-planet_radius = 1 
-planet_radius = [0.5, 0.7, 1.1]
+planet_radius = [0.2, 0.07, 0.07, 0.07, 0.07, 0.15, 0.15, 0.15, 0.15, 0.15]
+#planet_radius = [0.5, 0.7, 1.1]
 
 
 # Lectura del fichero de datos
@@ -149,7 +150,7 @@ def update(j_frame, frames_data, planet_points, planet_trails, show_trail):
     # Actualiza la posición del correspondiente a cada planeta
     for j_planet, planet_pos in enumerate(frames_data[j_frame]):
         x, y = planet_pos
-        planet_points[j_planet].center =  (x, y)
+        planet_points[j_planet].center = (x, y)
 
         if show_trail:
             xs_old, ys_old = planet_trails[j_planet].get_data()
@@ -160,6 +161,14 @@ def update(j_frame, frames_data, planet_points, planet_trails, show_trail):
 
     return planet_points + planet_trails
 
+def init_anim():
+    # Clear trails
+    if show_trail:
+        for j_planet in range(nplanets):
+            planet_trails[j_planet].set_data(list(), list())
+
+    return planet_points + planet_trails
+
 # Calcula el nº de frames
 nframes = len(frames_data)
 
@@ -167,7 +176,7 @@ nframes = len(frames_data)
 if nframes > 1:
     # Info sobre FuncAnimation: https://matplotlib.org/stable/api/animation_api.html
     animation = FuncAnimation(
-            fig, update,
+            fig, update, init_func=init_anim,
             fargs=(frames_data, planet_points, planet_trails, show_trail),
             frames=len(frames_data), blit=True, interval=interval)
 

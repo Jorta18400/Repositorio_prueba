@@ -9,8 +9,8 @@ void cambiounidades (double *vx, double *vy, double *m, int n);  //Función para
 void aceleracion (double *rx, double *ry, double *ax, double *ay, double *m, int n); //Función para calcular las aceleraciones de cada cuerpo en un instante t
 void posicion (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *wx, double *wy,int n, double hmedio, double h); //Función para sacar w(t) y r(t+h)
 void velocidad (double *vx, double *vy, double *wx, double *wy, double *ax, double *ay, int n, double hmedio); //Función pa sacar v(t+h)
-void energias (double *rx, double *ry, double *vx, double *vy, double *m, double energia, int n, double V, double T); //Función para sacar la energia en un tiempo t y ver si se mantiene cte
-
+double cinetica (double *vx, double *vy, double *m, double T, int n); //Función que devuelve la energía cinética total del sistema
+double potencial (double *rx, double *ry, double *m, double V, int n); //Función que devuelve la energía cinética total del sistema
 int main(void)
 { 
     double h, hmedio, energia, t, tmax; //h es el paso, t el tiempo y tmax el tope de tiempo que estara el programa simulando
@@ -28,10 +28,10 @@ int main(void)
     faceleracion=fopen("Aceleraciones.txt", "w");
   
     //Definimos parámetros
-    h=0.001;
+    h=0.3;
     hmedio=0.5*h;
-    n=2; 
-    tmax=0.1;
+    n=10; 
+    tmax=10000.0;
 
     //Ahora tenemos que asignar memoria dinámica a los vectores
     rx = (double*) malloc(n*sizeof(double));
@@ -56,7 +56,7 @@ int main(void)
     //Ahora escribimos las primeras posiciones (las iniciales) en el fichero de posiciones
     for(i=0;i<n;i++)
     {
-        fprintf(fposiciones, "%e\t%e\n", rx[i], ry[i]);
+        fprintf(fposiciones, "%e,\t%e\n", rx[i], ry[i]);
     }
     fprintf(fposiciones, "\n"); //Aquí introduzco un salto de línea para dejar un espacio entre cada tanda de posiciones
 
@@ -80,7 +80,9 @@ int main(void)
     t=0.0+h;
     while(t<tmax)
     {
-        energias(rx, ry, vx, vy, m, energia, n, V, T); //Aquí saco las energias para este t antes de sacar las variables en t+h
+        T=cinetica(vx,vy,m,T,n); //Aquí saco las energias para este t antes de sacar las variables en t+h
+        V=potencial(rx,ry,m,V,n);
+        energia=T+V;
 
         posicion(rx, ry, vx, vy, ax, ay, wx, wy, n, hmedio, h); //Saco w(t) y r(t+h)
 
@@ -91,7 +93,7 @@ int main(void)
         //Ahora voy a escribir en fichero las nuevas posiciones halladas para t+h
         for(i=0;i<n;i++)
         {
-            fprintf(fposiciones, "%e\t%e\n", rx[i], ry[i]);
+            fprintf(fposiciones, "%e,\t%e\n", rx[i], ry[i]);
         }
         fprintf(fposiciones, "\n"); //Aquí introduzco de nuevo un salto de línea para dejar un espacio entre cada tanda de posiciones
 
@@ -224,15 +226,26 @@ void velocidad (double *vx, double *vy, double *wx, double *wy, double *ax, doub
     return ;
 }
 
-void energias (double *rx, double *ry, double *vx, double *vy, double *m, double energia, int n, double V, double T) 
+double cinetica (double *vx, double *vy, double *m, double T, int n) 
+{
+    int i; //Contador
+
+    T=0.0;
+    for(i=0;i<n;i++) //Con este for saco las energías cinéticas
+    {
+        T+=0.5*m[i]*(pow(vx[i],2)+pow(vy[i],2));
+    }
+
+    return T;
+}
+
+double potencial (double *rx, double *ry, double *m, double V, int n)
 {
     int i, j; //Contadores
     double Vj; //Energía cinética, potencial, y potencial debida a un cuerpo j específico
     double dist; //Distancia entre dos cuerpos
 
     V=0.0;
-    T=0.0;
-    energia=0.0;
     i=0;
     while(i<n) //While para sacar el potencial de un cuerpo i
     {
@@ -252,14 +265,8 @@ void energias (double *rx, double *ry, double *vx, double *vy, double *m, double
         }
         i++;
     }
-    V=-V/2; //De nuevo hacemos un solo cambio de signo en vez de n. No reseteamos V porque queremos la suma de todos los V_i. Dividimos V/2 porque tuvimos en cuenta dos veces las interacciones
+    V=-V/2; //De nuevo hacemos un solo cambio de signo en vez de n. No reseteamos V porque queremos la suma de todos los V_i. 
+            //Dividimos V/2 porque tuvimos en cuenta dos veces las interacciones
 
-    for(i=0;i<n;i++) //Con este for saco las energías cinéticas
-    {
-        T+=0.5*m[i]*(pow(vx[i],2)+pow(vy[i],2));
-    }
-
-    energia = T+V;
-
-    return ;
+    return V;
 }
