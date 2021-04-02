@@ -15,23 +15,30 @@ int main(void)
 { 
     double h, hmedio, energia, t, tmax; //h es el paso, t el tiempo y tmax el tope de tiempo que estara el programa simulando
     int i;  //contador
-    int n; //n es número de planetas
+    int n; //n es número de cuerpos
     double *rx, *vx, *ax, *ry, *vy, *ay, *wx, *wy, *m; //posiciones, aceleraciones, velocidades, momentos angulares, masa
-    double V,T;
-    FILE *fposiciones, *fvelocidades, *fcond, *fenergia, *faceleracion; 
+    double *contador, *periodo, *kx, *ky, dist; //Un contador y el periodo de cada cuerpo. Las k serán las posiciones iniciales de cada cuerpo. Dist es distancia entre dos cuerpos
+    double V,T; //Energías potencial y cinética
+    FILE *fposiciones, *fvelocidades, *fcond, *fenergia, *faceleracion, *fperiodo; 
 
-    //Abrimos los ficheros, la estructura de estos es: #masa #posicion x #posicion y  #velocidad x #velocidad y
+    //Abrimos los ficheros, la estructura del de condiciones iniciales es: #masa #posicion x #posicion y  #velocidad x #velocidad y
     fposiciones=fopen("Posiciones.txt", "w");
     fvelocidades=fopen("Velocidades.txt","w");
     fcond=fopen("Condiciones_iniciales.txt","r");
     fenergia=fopen("Energias.txt", "w");
     faceleracion=fopen("Aceleraciones.txt", "w");
+    fperiodo=fopen("Periodo.txt", "w");
   
     //Definimos parámetros
-    h=0.3;
+    h=0.1;
     hmedio=0.5*h;
     n=10; 
-    tmax=10000.0;
+    tmax=1800.0;
+
+    for(i=0; i<n; i++) //Inicializo el contador
+    {
+        contador[i]=0.0;
+    }
 
     //Ahora tenemos que asignar memoria dinámica a los vectores
     rx = (double*) malloc(n*sizeof(double));
@@ -43,6 +50,10 @@ int main(void)
     wx = (double*) malloc(n*sizeof(double));
     wy = (double*) malloc(n*sizeof(double));
     m = (double*) malloc(n*sizeof(double));
+    contador = (double*) malloc(n*sizeof(double));
+    periodo = (double*) malloc(n*sizeof(double));
+    kx = (double*) malloc(n*sizeof(double));
+    ky = (double*) malloc(n*sizeof(double));
 
     //leemos las condiciones iniciales
     for(i=0; i<n; i++)
@@ -52,7 +63,12 @@ int main(void)
     
     //Tenemos que cambiar las unidades de las condiciones iniciales a las que usaremos en la simulación, no cambiamos r que ya viene en Au
     cambiounidades(vx,vy,m,n);
-
+    
+    for(i=0;i<n;i++) //Guardamos las posiciones iniciales de cada cuerpo, necesarias para sacar el periodo despues
+    {
+        kx[i]=rx[i];
+        ky[i]=ry[i];
+    }
     //Ahora escribimos las primeras posiciones (las iniciales) en el fichero de posiciones
     for(i=0;i<n;i++)
     {
@@ -74,7 +90,7 @@ int main(void)
         fprintf(faceleracion, "%e\t%e\n", ax[i], ay[i]); //Escribo aceleraciones pa ver, provisional
     }
     fprintf(faceleracion, "\n");
-
+    
 
     //Ahora vamos a comenzar un bucle while que ira avanzando en el tiempo de h en h y repitiendo el algoritmo de Verlet
     t=0.0+h;
@@ -97,7 +113,7 @@ int main(void)
         }
         fprintf(fposiciones, "\n"); //Aquí introduzco de nuevo un salto de línea para dejar un espacio entre cada tanda de posiciones
 
-        for(i=0;i<n;i++) //Ahora voy a escribir la energia para t en el fichero de energias para observar su evolucion
+        for(i=0;i<n;i++) //Ahora voy a escribir la energia para t en el fichero de energias para observar su evolución, se debe conservar
         {
             fprintf(fenergia, "%e\t%e\t%e\n", energia, V, T);
         }
@@ -115,6 +131,21 @@ int main(void)
         }
         fprintf(fvelocidades, "\n");
         
+        //Vamos a hacer una comprobación para conseguir el periodo de cada planeta, comprobaremos para cada cuerpo cuanto tiempo pasa para acercarse a un punto
+        //por donde ya pasó lo suficiente como para considerar que se dió una vuelta completa.
+        for(i=1;i<n;i++)
+        {
+            dist=sqrt(pow(kx[i]-rx[i],2)+pow(ky[i]-ry[i],2));
+            if(dist<0.08 && t>1.5 && contador[i]<1)
+            {
+                periodo[i]=t;
+                contador[i]++;
+
+                fprintf(fperiodo, "%e\n", periodo[i]); //Escribo el periodo en su fichero
+            }
+        }
+        
+
         t+=h; //Aumento t en un paso y volvemos a empezar con el bucle, así hasta que se llegue al tiempo máximo
     }
 
@@ -123,6 +154,7 @@ int main(void)
     fclose(fcond);
     fclose(fenergia);
     fclose(faceleracion);
+    fclose(fperiodo);
     free(rx);
     free(ry);
     free(vx);
@@ -130,6 +162,10 @@ int main(void)
     free(wx);
     free(wy);
     free(m);
+    free(contador);
+    free(periodo);
+    free(kx);
+    free(ky);
     //ACUERDATE DE CERRAR FICHEROS Y LIBERAR MEMORIA DE VECTORES MALLOC
     return 0;
 }
@@ -139,11 +175,9 @@ int main(void)
 void cambiounidades(double *vx, double *vy, double *m, int n)
 {
     int i; //contador
-    double c, Ms, G; //Distancia tierra-sol, masa sol, cte de gravitacion
+    double Ms; //Masa sol
 
-    c=1.496e11;
     Ms=1988500e24;
-    G=6.67e-11;
 
         for(i=0;i<n;i++)  //Las cond iniciales vienen en Au, Au/dia y kg, cambiamos a lo que nos dice el pdf (r ya esta asi que no se toca)
     {
