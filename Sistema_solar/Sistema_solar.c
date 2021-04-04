@@ -30,7 +30,7 @@ int main(void)
     fperiodo=fopen("Periodo.txt", "w");
   
     //Definimos parámetros
-    h=0.1;
+    h=0.05;
     hmedio=0.5*h;
     n=10; 
     tmax=1800.0;
@@ -133,10 +133,23 @@ int main(void)
         
         //Vamos a hacer una comprobación para conseguir el periodo de cada planeta, comprobaremos para cada cuerpo cuanto tiempo pasa para acercarse a un punto
         //por donde ya pasó lo suficiente como para considerar que se dió una vuelta completa.
-        for(i=1;i<n;i++)
+
+        for(i=1;i<n-3;i++) //En este for solo tendre en cuenta hasta saturno porque los otros planetas tienen orbitas muy grandes y necesitan un rango mayor de dist
         {
             dist=sqrt(pow(kx[i]-rx[i],2)+pow(ky[i]-ry[i],2));
-            if(dist<0.08 && t>1.5 && contador[i]<1)
+            if(dist<0.08 && t>1.0 && contador[i]<1)
+            {
+                periodo[i]=t;
+                contador[i]++;
+
+                fprintf(fperiodo, "%e\n", periodo[i]); //Escribo el periodo en su fichero
+            }
+        }
+
+        for(i=n-3;i<n;i++) //En este for solo tendre en cuenta los tres últimos cuerpos y les dare un rango mayor
+        {
+            dist=sqrt(pow(kx[i]-rx[i],2)+pow(ky[i]-ry[i],2));
+            if(dist<0.5 && t>10.0 && contador[i]<1)
             {
                 periodo[i]=t;
                 contador[i]++;
