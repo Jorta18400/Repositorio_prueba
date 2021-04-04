@@ -19,14 +19,12 @@ int main(void)
     double *rx, *vx, *ax, *ry, *vy, *ay, *wx, *wy, *m; //posiciones, aceleraciones, velocidades, momentos angulares, masa
     double *contador, *periodo, *kx, *ky, dist; //Un contador y el periodo de cada cuerpo. Las k serán las posiciones iniciales de cada cuerpo. Dist es distancia entre dos cuerpos
     double V,T; //Energías potencial y cinética
-    FILE *fposiciones, *fvelocidades, *fcond, *fenergia, *faceleracion, *fperiodo; 
+    FILE *fposiciones, *fcond, *fenergia, *fperiodo; 
 
     //Abrimos los ficheros, la estructura del de condiciones iniciales es: #masa #posicion x #posicion y  #velocidad x #velocidad y
     fposiciones=fopen("Posiciones.txt", "w");
-    fvelocidades=fopen("Velocidades.txt","w");
     fcond=fopen("Condiciones_iniciales.txt","r");
     fenergia=fopen("Energias.txt", "w");
-    faceleracion=fopen("Aceleraciones.txt", "w");
     fperiodo=fopen("Periodo.txt", "w");
   
     //Definimos parámetros
@@ -163,10 +161,8 @@ int main(void)
     }
 
     fclose(fposiciones);
-    fclose(fvelocidades);
     fclose(fcond);
     fclose(fenergia);
-    fclose(faceleracion);
     fclose(fperiodo);
     free(rx);
     free(ry);
