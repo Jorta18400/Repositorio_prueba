@@ -13,7 +13,7 @@ int main(void)
     int i, j, k; //contadores
 
     A[0][0]=9;
-    A[0][1]=2;  //Defino los valores que tendrán los elementos de matriz
+    A[0][1]=2;  //Defino los valores que tendrán los elementos de la matriz con los que trabajamos
     A[1][0]=2;
     A[1][1]=6;
 
