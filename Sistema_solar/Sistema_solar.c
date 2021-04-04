@@ -74,22 +74,9 @@ int main(void)
     }
     fprintf(fposiciones, "\n"); //Aquí introduzco un salto de línea para dejar un espacio entre cada tanda de posiciones
 
-    for(i=0;i<n;i++)
-    {
-        fprintf(fvelocidades, "%e\t%e\n", vx[i], vy[i]); //Escribo velocidades pa ver, provisional
-    }
-    fprintf(fvelocidades, "\n");
-
     //Lo suyo ahora sería calcular las aceleraciones para el tiempo inicial a partir de las fuerzas entre cuerpos
     aceleracion(rx,ry,ax,ay,m,n);
-
-    for(i=0;i<n;i++)
-    {
-        fprintf(faceleracion, "%e\t%e\n", ax[i], ay[i]); //Escribo aceleraciones pa ver, provisional
-    }
-    fprintf(faceleracion, "\n");
     
-
     //Ahora vamos a comenzar un bucle while que ira avanzando en el tiempo de h en h y repitiendo el algoritmo de Verlet
     t=0.0+h;
     while(t<tmax)
@@ -115,19 +102,6 @@ int main(void)
         {
             fprintf(fenergia, "%e\t%e\t%e\n", energia, V, T);
         }
-
-
-        for(i=0;i<n;i++)
-        {
-            fprintf(faceleracion, "%e\t%e\n", ax[i], ay[i]); //Escribo aceleraciones pa ver, provisional
-        }
-        fprintf(faceleracion, "\n");
-
-        for(i=0;i<n;i++)
-        {
-            fprintf(fvelocidades, "%e\t%e\n", vx[i], vy[i]); //Escribo aceleraciones pa ver, provisional
-        }
-        fprintf(fvelocidades, "\n");
         
         //Vamos a hacer una comprobación para conseguir el periodo de cada planeta, comprobaremos para cada cuerpo cuanto tiempo pasa para acercarse a un punto
         //por donde ya pasó lo suficiente como para considerar que se dió una vuelta completa.
