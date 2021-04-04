@@ -18,13 +18,11 @@ int main(void)
     double *rx, *vx, *ax, *ry, *vy, *ay, *wx, *wy, *m; //posiciones, aceleraciones, velocidades, momentos angulares, masa
     double *contador, *periodo, *kx, *ky, dist; //Un contador y el periodo de cada cuerpo. Las k serán las posiciones iniciales de cada cuerpo. Dist es distancia entre dos cuerpos
     double V,T; //Energías potencial y cinética
-    FILE *fposiciones, *fvelocidades, *fcond, *fenergia, *faceleracion, *fperiodo; 
+    FILE *fposiciones, *fcond, *fenergia, *fperiodo; 
     //Abrimos los ficheros, la estructura del de condiciones iniciales es: #masa #posicion x #posicion y  #velocidad x #velocidad y
     fposiciones=fopen("Posiciones.txt", "w");
-    fvelocidades=fopen("Velocidades.txt","w");
-    fcond=fopen("Condiciones_iniciales.txt","r");
+    fcond=fopen("Condiciones_inicialesT.txt","r");
     fenergia=fopen("Energias.txt", "w");
-    faceleracion=fopen("Aceleraciones.txt", "w");
     fperiodo=fopen("Periodo.txt", "w");
 
     //Definimos parámetros
@@ -74,20 +72,8 @@ int main(void)
     }
     fprintf(fposiciones, "\n"); //Aquí introduzco un salto de línea para dejar un espacio entre cada tanda de posiciones
 
-    for(i=0;i<n;i++)
-    {
-        fprintf(fvelocidades, "%e\t%e\n", vx[i], vy[i]); //Escribo velocidades pa ver, provisional
-    }
-    fprintf(fvelocidades, "\n");
-
     //Lo suyo ahora sería calcular las aceleraciones para el tiempo inicial a partir de las fuerzas entre cuerpos
     aceleracion(rx,ry,ax,ay,m,n);
-
-    for(i=0;i<n;i++)
-    {
-        fprintf(faceleracion, "%e\t%e\n", ax[i], ay[i]); //Escribo aceleraciones pa ver, provisional
-    }
-    fprintf(faceleracion, "\n");
     
     //Ahora vamos a comenzar un bucle while que ira avanzando en el tiempo de h en h y repitiendo el algoritmo de Verlet
     t=0.0+h;
@@ -103,7 +89,7 @@ int main(void)
         //Ahora voy a escribir en fichero las nuevas posiciones halladas para t+h
         for(i=0;i<n;i++)
         {
-            fprintf(fposiciones, "%e,\t%e\n", rx[i], ry[i]);
+            fprintf(fposiciones, "%e,\t%e\n", (rx[i]-rx[3]), (ry[i]-ry[3]));
         }
         fprintf(fposiciones, "\n"); //Aquí introduzco de nuevo un salto de línea para dejar un espacio entre cada tanda de posiciones
 
@@ -111,18 +97,6 @@ int main(void)
         {
             fprintf(fenergia, "%e\t%e\t%e\n", energia, V, T);
         }
-
-        for(i=0;i<n;i++)
-        {
-            fprintf(faceleracion, "%e\t%e\n", ax[i], ay[i]); //Escribo aceleraciones pa ver, provisional
-        }
-        fprintf(faceleracion, "\n");
-
-        for(i=0;i<n;i++)
-        {
-            fprintf(fvelocidades, "%e\t%e\n", vx[i], vy[i]); //Escribo aceleraciones pa ver, provisional
-        }
-        fprintf(fvelocidades, "\n");
 
         //Vamos a hacer una comprobación para conseguir el periodo de cada planeta, comprobaremos para cada cuerpo cuanto tiempo pasa para acercarse a un punto
         //por donde ya pasó lo suficiente como para considerar que se dió una vuelta completa.
@@ -154,10 +128,8 @@ int main(void)
         t+=h; //Aumento t en un paso y volvemos a empezar con el bucle, así hasta que se llegue al tiempo máximo
     }
     fclose(fposiciones);
-    fclose(fvelocidades);
     fclose(fcond);
     fclose(fenergia);
-    fclose(faceleracion);
     fclose(fperiodo);
     free(rx);
     free(ry);
