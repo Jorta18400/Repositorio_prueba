@@ -5,6 +5,8 @@
 //mediante el método de las potencias
 ////////////////////////////
 
+// COMENTARIO AÑADIDO POR LA PROFE
+
 int main(void)
 {
     double a, suma, vv, Avv;     //a es el autovalor dominante, suma es un auxiliar donde se almacenan valores, vv es el producto de v*v y Avv es Av*v
