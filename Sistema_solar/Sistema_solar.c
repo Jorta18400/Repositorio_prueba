@@ -5,6 +5,7 @@
 //Programa que simula el comportamiento del sistema solar 
 ////////////////////////////
 
+
 void cambiounidades (double *vx, double *vy, double *m, int n);  //Función para cambiar las unidades de las condiciones iniciales 
 void aceleracion (double *rx, double *ry, double *ax, double *ay, double *m, int n); //Función para calcular las aceleraciones de cada cuerpo en un instante t
 void posicion (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *wx, double *wy,int n, double hmedio, double h); //Función para sacar w(t) y r(t+h)
