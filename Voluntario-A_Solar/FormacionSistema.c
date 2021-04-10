@@ -13,21 +13,21 @@ void velocidad (double *vx, double *vy, double *wx, double *wy, double *ax, doub
 double cinetica (double *vx, double *vy, double *m, double T, int n); //Función que devuelve la energía cinética total del sistema
 double potencial (double *rx, double *ry, double *m, double V, int n); //Función que devuelve la energía cinética total del sistema
 void generacond (double *rx, double *ry, double *vx, double *vy, double *m, double *radio, int *tipo, int n); //Función para generar las condiciones iniciales
-void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, double calortotal, int *tipo, int n); //Funcion que trabaja con las colisiones de planetesimales
+void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, double calortotal, double tsinchoques, int *tipo, int n); //Funcion que trabaja con las colisiones de planetesimales
 void eliminacion (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, int *tipo, int n, int j); //Elimina un cuerpo del sistema
 double calor (double *vx, double *vy, double *m, double vxprevia_i, double vyprevia_i, double vxprevia_j, double vyprevia_j, double calortotal, int n, int i,int j); //Calcula la diferencia entre energias cinéticas en el choque y la interpreta como calor 
 
 int main(void)
 { 
-    double h, hmedio, energia, t, tmax; //h es el paso, t el tiempo y tmax el tope de tiempo que estara el programa simulando
-    int i;  //contador
+    double h, hmedio, energia, t, tsinchoques; //h es el paso, t el tiempo y tmax el tope de tiempo que estara el programa simulando
+    int i,k;  //contador
     int n; //n es número de cuerpos
     int *tipo; //Con esto determinaré si un cuerpo es rocoso o gaseoso
     double *rx, *vx, *ax, *ry, *vy, *ay, *wx, *wy, *m, *radio; //posiciones, aceleraciones, velocidades, momentos angulares, masa
     double *contador, *periodo, *kx, *ky, dist; //Un contador y el periodo de cada cuerpo. Las k serán las posiciones iniciales de cada cuerpo. Dist es distancia entre dos cuerpos
     double V,T; //Energías potencial y cinética
     double calortotal; //Cuenta el calor total perdido en un instante de tiempo t
-    FILE *fposiciones, *fenergia, *fperiodo, *fvelocidades, *faceleraciones; 
+    FILE *fposiciones, *fenergia, *fperiodo, *fvelocidades, *faceleraciones, *ftiempo, *fradios; 
 
     //Abrimos los ficheros, generamos las condiciones iniciales en el programa así que no hay fichero de condiciones inciales
     fposiciones=fopen("Posiciones.txt", "w");
@@ -35,12 +35,14 @@ int main(void)
     fperiodo=fopen("Periodo.txt", "w");
     fvelocidades=fopen("Velocidades.txt","w");
     faceleraciones=fopen("Aceleraciones.txt","w");
+    ftiempo=fopen("Tiempo.txt","w");
+    fradios=fopen("Radios.txt","w");
   
     //Definimos parámetros
     h=0.05;
     hmedio=0.5*h;
-    n=80; 
-    tmax=10.0;
+    n=60; 
+    tsinchoques=0.0;
 
     for(i=0; i<n; i++) //Inicializo el contador
     {
@@ -64,94 +66,83 @@ int main(void)
     radio = (double*) malloc(n*sizeof(double));
     tipo = (int*) malloc(n*sizeof(int));
 
-
-    //generamos las condiciones iniciales
-    rx[0]=0.0;
-    ry[0]=0.0; //Estas son las condiciones para el Sol, que no son aleatorias
-    vx[0]=0.0;
-    vy[0]=0.0;
-    m[0]=1; //Una vez reescaladas las unidades se queda que el Sol tiene masa 1
-    radio[0]=0.0046504; //radio solar en UA
-    tipo[0]=2; //Tipo exclusivo del sol
-    generacond(rx,ry,vx,vy,m,radio,tipo,n);
-    
-    for(i=0;i<=n;i++) //Guardamos las posiciones iniciales de cada cuerpo, necesarias para sacar el periodo despues
+    for(k=0;k<1;k++)
     {
-        kx[i]=rx[i];
-        ky[i]=ry[i];
-    }
+        //generamos las condiciones iniciales
+        rx[0]=0.0;
+        ry[0]=0.0; //Estas son las condiciones para el Sol, que no son aleatorias
+        vx[0]=0.0;
+        vy[0]=0.0;
+        m[0]=1; //Una vez reescaladas las unidades se queda que el Sol tiene masa 1
+        radio[0]=0.0046504; //radio solar en UA
+        tipo[0]=2; //Tipo exclusivo del sol
+        generacond(rx,ry,vx,vy,m,radio,tipo,n);
 
-    //Ahora escribimos las primeras posiciones (las iniciales) en el fichero de posiciones
-    for(i=0;i<=n;i++)
-    {
-        fprintf(fposiciones, "%e,\t%e\n", rx[i], ry[i]);
-    }
-    fprintf(fposiciones, "\n"); //Aquí introduzco un salto de línea para dejar un espacio entre cada tanda de posiciones
-
-    //Lo suyo ahora sería calcular las aceleraciones para el tiempo inicial a partir de las fuerzas entre cuerpos
-    aceleracion(rx,ry,ax,ay,m,n);
-
-    T=cinetica(vx,vy,m,T,n); //Aquí saco las energias para t=0
-    V=potencial(rx,ry,m,V,n);
-    energia=T+V;
-    //Ahora voy a escribir la energia para t=0 en el fichero de energias
-    fprintf(fenergia, "%e\t%e\t%e\n", energia, V, T);
-
-    //Ahora vamos a comenzar un bucle while que ira avanzando en el tiempo de h en h y repitiendo el algoritmo de Verlet
-    t=0.0+h;
-    while(t<tmax)
-    {
-        posicion(rx, ry, vx, vy, ax, ay, wx, wy, n, hmedio, h); //Saco w(t) y r(t+h)
-
-        aceleracion(rx, ry, ax, ay, m, n); //Ahora saco a(t+h)
-
-        velocidad(vx, vy, wx, wy, ax, ay, n, hmedio); //Aquí saco v(t+h) usando lo anterior
-
-        //Tenemos las posiciones y velocidades en t+h vamos a evaluar si hay colisiones y como se dan
-        colisiones(rx,ry,vx,vy,ax,ay,m,radio,calortotal,tipo,n);
-
-        //Ahora voy a escribir en fichero las nuevas posiciones halladas para t+h
-        for(i=0;i<=n;i++)
+        //Ahora escribimos las primeras posiciones (las iniciales) en el fichero de posiciones
+        for(i=0;i<n;i++)
         {
             fprintf(fposiciones, "%e,\t%e\n", rx[i], ry[i]);
         }
-        fprintf(fposiciones, "\n"); //Aquí introduzco de nuevo un salto de línea para dejar un espacio entre cada tanda de posiciones
+        fprintf(fposiciones, "\n"); //Aquí introduzco un salto de línea para dejar un espacio entre cada tanda de posiciones
 
-        T=cinetica(vx,vy,m,T,n); //Aquí saco las energias para este t
+        //Lo suyo ahora sería calcular las aceleraciones para el tiempo inicial a partir de las fuerzas entre cuerpos
+        aceleracion(rx,ry,ax,ay,m,n);
+
+        T=cinetica(vx,vy,m,T,n); //Aquí saco las energias para t=0
         V=potencial(rx,ry,m,V,n);
-        energia=T+V+calortotal;
-        //Ahora voy a escribir la energia para t en el fichero de energias para observar su evolución, se debe conservar
+        energia=T+V;
+        //Ahora voy a escribir la energia para t=0 en el fichero de energias
         fprintf(fenergia, "%e\t%e\t%e\n", energia, V, T);
-        
-        //Vamos a hacer una comprobación para conseguir el periodo de cada planeta, comprobaremos para cada cuerpo cuanto tiempo pasa para acercarse a un punto
-        //por donde ya pasó lo suficiente como para considerar que se dió una vuelta completa.
 
-        for(i=1;i<=n-3;i++) //En este for solo tendre en cuenta hasta saturno porque los otros planetas tienen orbitas muy grandes y necesitan un rango mayor de dist
+        //Ahora vamos a comenzar un bucle while que ira avanzando en el tiempo de h en h y repitiendo el algoritmo de Verlet
+        t=0.0+h;
+        while(tsinchoques<30.0)
         {
-            dist=sqrt(pow(kx[i]-rx[i],2)+pow(ky[i]-ry[i],2));
-            if(dist<0.08 && t>1.0 && contador[i]<1)
-            {
-                periodo[i]=t;
-                contador[i]++;
+            posicion(rx, ry, vx, vy, ax, ay, wx, wy, n, hmedio, h); //Saco w(t) y r(t+h)
 
-                fprintf(fperiodo, "%e\n", periodo[i]); //Escribo el periodo en su fichero
+            aceleracion(rx, ry, ax, ay, m, n); //Ahora saco a(t+h)
+
+            velocidad(vx, vy, wx, wy, ax, ay, n, hmedio); //Aquí saco v(t+h) usando lo anterior
+
+            //Tenemos las posiciones y velocidades en t+h vamos a evaluar si hay colisiones y como se dan
+            tsinchoques=tsinchoques+h; //Aumentamos el tiempo que paso sin haber un choque, si hay una colisión se reseteará a 0
+            colisiones(rx,ry,vx,vy,ax,ay,m,radio,calortotal,tsinchoques,tipo,n);
+
+            //Ahora voy a escribir en fichero las nuevas posiciones halladas para t+h
+            for(i=0;i<n;i++)
+            {
+                fprintf(fposiciones, "%e,\t%e\n", rx[i], ry[i]);
             }
+            fprintf(fposiciones, "\n"); //Aquí introduzco de nuevo un salto de línea para dejar un espacio entre cada tanda de posiciones
+
+            T=cinetica(vx,vy,m,T,n); //Aquí saco las energias para este t
+            V=potencial(rx,ry,m,V,n);
+            energia=T+V+calortotal;
+            //Ahora voy a escribir la energia para t en el fichero de energias para observar su evolución, se debe conservar
+            fprintf(fenergia, "%e\t%e\t%e\n", energia, V, T);
+        
+
+            t+=h; //Aumento t en un paso y volvemos a empezar con el bucle, así hasta que se llegue al tiempo máximo
+        }
+        //Cuando ha pasado suficiente tiempo sin choques consideramos que nos encontramos en una situación de estabilidad, entonces habrá que observar las características
+        //de este sistema estable resultante
+        //Comencemos viendo cuanto tiempo pasó desde que iniciamos el sistema hasta que llegamos a la estabilidad
+        fprintf(ftiempo, "%e\n", t);
+
+        //Ahora veamos las posiciones de los planetas formados
+        for(i=0;i<n;i++)
+        {
+            fprintf(fposiciones, "%e\t%e\n", rx[i], ry[i]);
         }
 
-        for(i=n-3;i<=n;i++) //En este for solo tendre en cuenta los tres últimos cuerpos y les dare un rango mayor
+        //Veamos los radios también
+        for(i=0;i<n;i++)
         {
-            dist=sqrt(pow(kx[i]-rx[i],2)+pow(ky[i]-ry[i],2));
-            if(dist<0.5 && t>10.0 && contador[i]<1)
-            {
-                periodo[i]=t;
-                contador[i]++;
-
-                fprintf(fperiodo, "%e\n", periodo[i]); //Escribo el periodo en su fichero
-            }
+            fprintf(fradios, "%e\n", radio[i]);
         }
+
         
 
-        t+=h; //Aumento t en un paso y volvemos a empezar con el bucle, así hasta que se llegue al tiempo máximo
     }
 
     fclose(fposiciones);
@@ -159,6 +150,8 @@ int main(void)
     fclose(fperiodo);
     fclose(faceleraciones);
     fclose(fvelocidades);
+    fclose(ftiempo);
+    fclose(fradios);
     free(rx);
     free(ry);
     free(vx);
@@ -185,7 +178,7 @@ void aceleracion (double *rx, double *ry, double *ax, double *ay, double *m, int
 
 
     i=1; //Inicializo a 1 para que no se cuente la del sol debida a él mismo
-    while(i<=n) //En este while vamos a calcular la aceleración de un cuerpo i debido a la influencia del Sol
+    while(i<n) //En este while vamos a calcular la aceleración de un cuerpo i debido a la influencia del Sol
     {
         ax[i]=0.0;  //Comienzo incializando la aceleración del cuerpo a 0 por si acaso
         ay[i]=0.0;
@@ -206,12 +199,12 @@ void posicion (double *rx, double *ry, double *vx, double *vy, double *ax, doubl
 {
     int i; //Contador
 
-    for(i=0;i<=n;i++) //Bucle para calcular w(t)
+    for(i=0;i<n;i++) //Bucle para calcular w(t)
     {
         wx[i]=vx[i]+hmedio*ax[i];
         wy[i]=vy[i]+hmedio*ay[i];
     }
-    for(i=0;i<=n;i++) //Bucle pa sacar r(t+h)
+    for(i=0;i<n;i++) //Bucle pa sacar r(t+h)
     {
         rx[i]=rx[i]+h*wx[i];
         ry[i]=ry[i]+h*wy[i];
@@ -223,7 +216,7 @@ void velocidad (double *vx, double *vy, double *wx, double *wy, double *ax, doub
 {
     int i; //Contador
 
-    for(i=0;i<=n;i++)
+    for(i=0;i<n;i++)
     {
         vx[i]=wx[i]+hmedio*ax[i];
         vy[i]=wy[i]+hmedio*ay[i];
@@ -236,7 +229,7 @@ double cinetica (double *vx, double *vy, double *m, double T, int n)
     int i; //Contador
 
     T=0.0;
-    for(i=0;i<=n;i++) //Con este for saco las energías cinéticas
+    for(i=0;i<n;i++) //Con este for saco las energías cinéticas
     {
         T+=0.5*m[i]*(pow(vx[i],2)+pow(vy[i],2));
     }
@@ -251,7 +244,7 @@ double potencial (double *rx, double *ry, double *m, double V, int n)
 
     V=0.0;
     i=0;
-    while(i<=n) //While para sacar el potencial de un cuerpo i, solo tenemos en cuenta su interaccion con el sol esta vez
+    while(i<n) //While para sacar el potencial de un cuerpo i, solo tenemos en cuenta su interaccion con el sol esta vez
     {
                 dist=pow(rx[i]-rx[0],2) + pow(ry[i]-ry[0],2);
                 dist=sqrt(dist);
@@ -269,7 +262,7 @@ void generacond (double  *rx, double *ry, double *vx, double *vy, double *m, dou
 
     srand48(time(NULL)); //Creo la semilla para la generación aleatoria de números reales
 
-    for(i=1; i<=n; i++) //Empezamos en 1 y no en 0 porque el Sol no tiene propiedades aleatorias
+    for(i=1; i<n; i++) //Empezamos en 1 y no en 0 porque el Sol no tiene propiedades aleatorias
     {
         if(i<=(n/10))
         {
@@ -279,16 +272,16 @@ void generacond (double  *rx, double *ry, double *vx, double *vy, double *m, dou
         signo=rand()%2; //Genera un aleatorio entre 0 y 1
         if(signo==1)
         {
-            rx[i]=-drand48()*30.0+30.0; //Esto genera un aleatorio real entre 0 y 30 UA, donde colocaremos nuestros cuerpos
+            rx[i]=-drand48()*29.9953496+30.0; //Esto genera un aleatorio real entre 0.0046504 y 30 UA, donde colocaremos nuestros cuerpos
         }
-        else rx[i]=drand48()*30.0+30.0;
+        else rx[i]=drand48()*29.9953496+30.0;
         
         signo=rand()%2;
         if(signo==1)
         {
-            ry[i]=-drand48()*30.0+30.0; 
+            ry[i]=-drand48()*29.9953496+30.0; 
         }
-        else ry[i]=drand48()*30.0+30.0;
+        else ry[i]=drand48()*29.9953496+30.0;
 
         signo=rand()%2;
         if(signo==1)
@@ -312,7 +305,7 @@ void generacond (double  *rx, double *ry, double *vx, double *vy, double *m, dou
     return ;
 }
 
-void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, double calortotal, int *tipo, int n)
+void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, double calortotal, double tsinchoques, int *tipo, int n)
 {
     int i,j;
     double dist, sumaradios; //Distancia entre cuerpos y suma de los radios de dos cuerpos
@@ -322,10 +315,10 @@ void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, dou
     calortotal=0.0; //Inicializo el calor generado en este instante t
 
     i=0; 
-    while(i<=n)  //CONSIDERAR CHOQUES ROCOSOS CON EL SOL
+    while(i<n)  //CONSIDERAR CHOQUES ROCOSOS CON EL SOL
     {
         j=1; //El cuerpo j no puede ser el Sol 
-        while(j<=n)  //En este while veremos las distintas posibilidades de choque y sus resultados
+        while(j<n)  //En este while veremos las distintas posibilidades de choque y sus resultados
         {
             if(tipo[i]==2 && tipo[j]==1) //Caso Sol con rocoso
             {
@@ -351,6 +344,7 @@ void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, dou
                     m[i]+=m[j];   
                     
                     eliminacion(rx,ry,vx,vy,ax,ay,m,radio,tipo,n,j);
+                    tsinchoques=0.0;
                     j++;
                 }else j++; //Aquí no hay colisión 
             }
@@ -378,6 +372,7 @@ void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, dou
                     m[i]+=m[j];   
                     
                     eliminacion(rx,ry,vx,vy,ax,ay,m,radio,tipo,n,j);
+                    tsinchoques=0.0;
                     j++;
                 }else j++; //Aquí no hay colisión 
             }
@@ -413,6 +408,7 @@ void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, dou
                              m[i]+=m[j];  
 
                              eliminacion(rx,ry,vx,vy,ax,ay,m,radio,tipo,n,j);
+                             tsinchoques=0.0;
                             j++;
                         }else j++; 
                     }else j++; 
@@ -430,7 +426,7 @@ void eliminacion (double *rx, double *ry, double *vx, double *vy, double *ax, do
     int i;
 
     //Vamos a eliminar un cuerpo j desplazando todos los objetos del vector y solapando al que antes era j
-    for(i=j;i<n;i++)
+    for(i=j;i<n-1;i++)
     {
         rx[i]=rx[i+1];
         ry[i]=ry[i+1];
