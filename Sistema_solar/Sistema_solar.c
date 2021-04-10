@@ -100,10 +100,8 @@ int main(void)
         }
         fprintf(fposiciones, "\n"); //Aquí introduzco de nuevo un salto de línea para dejar un espacio entre cada tanda de posiciones
 
-        for(i=0;i<n;i++) //Ahora voy a escribir la energia para t en el fichero de energias para observar su evolución, se debe conservar
-        {
-            fprintf(fenergia, "%e\t%e\t%e\n", energia, V, T);
-        }
+        //Ahora voy a escribir la energia para t en el fichero de energias para observar su evolución, se debe conservar
+        fprintf(fenergia, "%e\t%e\t%e\n", energia, V, T);
         
         //Vamos a hacer una comprobación para conseguir el periodo de cada planeta, comprobaremos para cada cuerpo cuanto tiempo pasa para acercarse a un punto
         //por donde ya pasó lo suficiente como para considerar que se dió una vuelta completa.
