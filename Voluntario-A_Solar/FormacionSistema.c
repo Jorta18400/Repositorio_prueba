@@ -12,16 +12,21 @@ void posicion (double *rx, double *ry, double *vx, double *vy, double *ax, doubl
 void velocidad (double *vx, double *vy, double *wx, double *wy, double *ax, double *ay, int n, double hmedio); //Función pa sacar v(t+h)
 double cinetica (double *vx, double *vy, double *m, double T, int n); //Función que devuelve la energía cinética total del sistema
 double potencial (double *rx, double *ry, double *m, double V, int n); //Función que devuelve la energía cinética total del sistema
-void generacond (double  *rx, double *ry, double *vx, double *vy, int n); //Función para generar las condiciones iniciales
+void generacond (double *rx, double *ry, double *vx, double *vy, double *m, double *radio, int *tipo, int n); //Función para generar las condiciones iniciales
+void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, double calortotal, int *tipo, int n); //Funcion que trabaja con las colisiones de planetesimales
+void eliminacion (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, int *tipo, int n, int j); //Elimina un cuerpo del sistema
+double calor (double *vx, double *vy, double *m, double vxprevia_i, double vyprevia_i, double vxprevia_j, double vyprevia_j, double calortotal, int n, int i,int j); //Calcula la diferencia entre energias cinéticas en el choque y la interpreta como calor 
+
 int main(void)
 { 
     double h, hmedio, energia, t, tmax; //h es el paso, t el tiempo y tmax el tope de tiempo que estara el programa simulando
     int i;  //contador
     int n; //n es número de cuerpos
-    int signo; //Se usa para decidir si un número será positivo o negativo
+    int *tipo; //Con esto determinaré si un cuerpo es rocoso o gaseoso
     double *rx, *vx, *ax, *ry, *vy, *ay, *wx, *wy, *m, *radio; //posiciones, aceleraciones, velocidades, momentos angulares, masa
     double *contador, *periodo, *kx, *ky, dist; //Un contador y el periodo de cada cuerpo. Las k serán las posiciones iniciales de cada cuerpo. Dist es distancia entre dos cuerpos
     double V,T; //Energías potencial y cinética
+    double calortotal; //Cuenta el calor total perdido en un instante de tiempo t
     FILE *fposiciones, *fenergia, *fperiodo, *fvelocidades, *faceleraciones; 
 
     //Abrimos los ficheros, generamos las condiciones iniciales en el programa así que no hay fichero de condiciones inciales
@@ -34,8 +39,8 @@ int main(void)
     //Definimos parámetros
     h=0.05;
     hmedio=0.5*h;
-    n=100; 
-    tmax=180.0;
+    n=80; 
+    tmax=10.0;
 
     for(i=0; i<n; i++) //Inicializo el contador
     {
@@ -57,22 +62,27 @@ int main(void)
     kx = (double*) malloc(n*sizeof(double));
     ky = (double*) malloc(n*sizeof(double));
     radio = (double*) malloc(n*sizeof(double));
+    tipo = (int*) malloc(n*sizeof(int));
+
 
     //generamos las condiciones iniciales
     rx[0]=0.0;
     ry[0]=0.0; //Estas son las condiciones para el Sol, que no son aleatorias
     vx[0]=0.0;
     vy[0]=0.0;
-    generacond(rx,ry,vx,vy,n);
+    m[0]=1; //Una vez reescaladas las unidades se queda que el Sol tiene masa 1
+    radio[0]=0.0046504; //radio solar en UA
+    tipo[0]=2; //Tipo exclusivo del sol
+    generacond(rx,ry,vx,vy,m,radio,tipo,n);
     
-    for(i=0;i<n;i++) //Guardamos las posiciones iniciales de cada cuerpo, necesarias para sacar el periodo despues
+    for(i=0;i<=n;i++) //Guardamos las posiciones iniciales de cada cuerpo, necesarias para sacar el periodo despues
     {
         kx[i]=rx[i];
         ky[i]=ry[i];
     }
 
     //Ahora escribimos las primeras posiciones (las iniciales) en el fichero de posiciones
-    for(i=0;i<n;i++)
+    for(i=0;i<=n;i++)
     {
         fprintf(fposiciones, "%e,\t%e\n", rx[i], ry[i]);
     }
@@ -80,37 +90,43 @@ int main(void)
 
     //Lo suyo ahora sería calcular las aceleraciones para el tiempo inicial a partir de las fuerzas entre cuerpos
     aceleracion(rx,ry,ax,ay,m,n);
-    
+
+    T=cinetica(vx,vy,m,T,n); //Aquí saco las energias para t=0
+    V=potencial(rx,ry,m,V,n);
+    energia=T+V;
+    //Ahora voy a escribir la energia para t=0 en el fichero de energias
+    fprintf(fenergia, "%e\t%e\t%e\n", energia, V, T);
+
     //Ahora vamos a comenzar un bucle while que ira avanzando en el tiempo de h en h y repitiendo el algoritmo de Verlet
     t=0.0+h;
     while(t<tmax)
     {
-        T=cinetica(vx,vy,m,T,n); //Aquí saco las energias para este t antes de sacar las variables en t+h
-        V=potencial(rx,ry,m,V,n);
-        energia=T+V;
-
         posicion(rx, ry, vx, vy, ax, ay, wx, wy, n, hmedio, h); //Saco w(t) y r(t+h)
 
         aceleracion(rx, ry, ax, ay, m, n); //Ahora saco a(t+h)
 
         velocidad(vx, vy, wx, wy, ax, ay, n, hmedio); //Aquí saco v(t+h) usando lo anterior
 
+        //Tenemos las posiciones y velocidades en t+h vamos a evaluar si hay colisiones y como se dan
+        colisiones(rx,ry,vx,vy,ax,ay,m,radio,calortotal,tipo,n);
+
         //Ahora voy a escribir en fichero las nuevas posiciones halladas para t+h
-        for(i=0;i<n;i++)
+        for(i=0;i<=n;i++)
         {
             fprintf(fposiciones, "%e,\t%e\n", rx[i], ry[i]);
         }
         fprintf(fposiciones, "\n"); //Aquí introduzco de nuevo un salto de línea para dejar un espacio entre cada tanda de posiciones
 
-        for(i=0;i<n;i++) //Ahora voy a escribir la energia para t en el fichero de energias para observar su evolución, se debe conservar
-        {
-            fprintf(fenergia, "%e\t%e\t%e\n", energia, V, T);
-        }
+        T=cinetica(vx,vy,m,T,n); //Aquí saco las energias para este t
+        V=potencial(rx,ry,m,V,n);
+        energia=T+V+calortotal;
+        //Ahora voy a escribir la energia para t en el fichero de energias para observar su evolución, se debe conservar
+        fprintf(fenergia, "%e\t%e\t%e\n", energia, V, T);
         
         //Vamos a hacer una comprobación para conseguir el periodo de cada planeta, comprobaremos para cada cuerpo cuanto tiempo pasa para acercarse a un punto
         //por donde ya pasó lo suficiente como para considerar que se dió una vuelta completa.
 
-        for(i=1;i<n-3;i++) //En este for solo tendre en cuenta hasta saturno porque los otros planetas tienen orbitas muy grandes y necesitan un rango mayor de dist
+        for(i=1;i<=n-3;i++) //En este for solo tendre en cuenta hasta saturno porque los otros planetas tienen orbitas muy grandes y necesitan un rango mayor de dist
         {
             dist=sqrt(pow(kx[i]-rx[i],2)+pow(ky[i]-ry[i],2));
             if(dist<0.08 && t>1.0 && contador[i]<1)
@@ -122,7 +138,7 @@ int main(void)
             }
         }
 
-        for(i=n-3;i<n;i++) //En este for solo tendre en cuenta los tres últimos cuerpos y les dare un rango mayor
+        for(i=n-3;i<=n;i++) //En este for solo tendre en cuenta los tres últimos cuerpos y les dare un rango mayor
         {
             dist=sqrt(pow(kx[i]-rx[i],2)+pow(ky[i]-ry[i],2));
             if(dist<0.5 && t>10.0 && contador[i]<1)
@@ -141,6 +157,8 @@ int main(void)
     fclose(fposiciones);
     fclose(fenergia);
     fclose(fperiodo);
+    fclose(faceleraciones);
+    fclose(fvelocidades);
     free(rx);
     free(ry);
     free(vx);
@@ -152,6 +170,8 @@ int main(void)
     free(periodo);
     free(kx);
     free(ky);
+    free(radio);
+    free(tipo);
     //ACUERDATE DE CERRAR FICHEROS Y LIBERAR MEMORIA DE VECTORES MALLOC
     return 0;
 }
@@ -160,39 +180,22 @@ int main(void)
 
 void aceleracion (double *rx, double *ry, double *ax, double *ay, double *m, int n)
 {
-    int i,j; //contadores
-    double dist, axj, ayj; //dist es la distancia entre dos cuerpos, axj y ayj son las componentes de aceleracion debidas a un cuerpo j concreto
+    int i; //contador
+    double dist; //dist es la distancia entre dos cuerpos
 
 
-    i=0;
-    while(i<n) //En este while vamos a calcular la aceleración de un cuerpo i debido a la influencia de otro cuerpo j y a sumarlas para obtener la total
+    i=1; //Inicializo a 1 para que no se cuente la del sol debida a él mismo
+    while(i<=n) //En este while vamos a calcular la aceleración de un cuerpo i debido a la influencia del Sol
     {
         ax[i]=0.0;  //Comienzo incializando la aceleración del cuerpo a 0 por si acaso
         ay[i]=0.0;
 
-        j=0;
-        while(j<n) //En este bucle vamos a recorrer los cuerpos j para evaluar su aporte a la aceleracion
-        {
-            if(j!=i) //Caso en que j e i son cuerpos distintos, aquí si hay aporte de aceleracion
-            {
-                dist=pow(rx[i]-rx[j],2) + pow(ry[i]-ry[j],2);
-                dist=sqrt(dist);
+        dist=pow(rx[i]-rx[0],2) + pow(ry[i]-ry[0],2);
+        dist=sqrt(dist);
 
-                axj=(m[j]*(rx[i]-rx[j]))/pow(dist,3);  
-                ayj=(m[j]*(ry[i]-ry[j]))/pow(dist,3);
+        ax[i]=-(m[0]*(rx[i]-rx[0]))/pow(dist,3); 
+        ay[i]=-(m[0]*(ry[i]-ry[0]))/pow(dist,3);   
 
-                ax[i]=ax[i]+axj;    //Añado las aceleraciones debidas al cuerpo j al total, las multiplico por 2 por la 3 ley de newton,
-                ay[i]=ay[i]+ayj;    // ya que no estoy recorriendo todos los cuerpos
-                
-                j++;
-            }
-            else j++; //Este es el caso en que i=j y no hay aporte
-            
-             
-        }
-
-        ax[i]=-ax[i];  //Cambiamos ahora de signo una vez en vez de hacer n cambios 
-        ay[i]=-ay[i];  
         i++;
     }
 
@@ -203,12 +206,12 @@ void posicion (double *rx, double *ry, double *vx, double *vy, double *ax, doubl
 {
     int i; //Contador
 
-    for(i=0;i<n;i++) //Bucle para calcular w(t)
+    for(i=0;i<=n;i++) //Bucle para calcular w(t)
     {
         wx[i]=vx[i]+hmedio*ax[i];
         wy[i]=vy[i]+hmedio*ay[i];
     }
-    for(i=0;i<n;i++) //Bucle pa sacar r(t+h)
+    for(i=0;i<=n;i++) //Bucle pa sacar r(t+h)
     {
         rx[i]=rx[i]+h*wx[i];
         ry[i]=ry[i]+h*wy[i];
@@ -220,7 +223,7 @@ void velocidad (double *vx, double *vy, double *wx, double *wy, double *ax, doub
 {
     int i; //Contador
 
-    for(i=0;i<n;i++)
+    for(i=0;i<=n;i++)
     {
         vx[i]=wx[i]+hmedio*ax[i];
         vy[i]=wy[i]+hmedio*ay[i];
@@ -233,7 +236,7 @@ double cinetica (double *vx, double *vy, double *m, double T, int n)
     int i; //Contador
 
     T=0.0;
-    for(i=0;i<n;i++) //Con este for saco las energías cinéticas
+    for(i=0;i<=n;i++) //Con este for saco las energías cinéticas
     {
         T+=0.5*m[i]*(pow(vx[i],2)+pow(vy[i],2));
     }
@@ -243,44 +246,36 @@ double cinetica (double *vx, double *vy, double *m, double T, int n)
 
 double potencial (double *rx, double *ry, double *m, double V, int n)
 {
-    int i, j; //Contadores
-    double Vj; //Energía cinética, potencial, y potencial debida a un cuerpo j específico
+    int i; //Contadores
     double dist; //Distancia entre dos cuerpos
 
     V=0.0;
     i=0;
-    while(i<n) //While para sacar el potencial de un cuerpo i
+    while(i<=n) //While para sacar el potencial de un cuerpo i, solo tenemos en cuenta su interaccion con el sol esta vez
     {
-        j=0;
-        while(j<n) //Aqui consideramos cada una de las aportaciones de cada cuerpo j al potencial total
-        {
-            if(i!=j) //Solo se considera el caso en que i y j sean cuerpos distintos
-            {
-                dist=pow(rx[i]-rx[j],2) + pow(ry[i]-ry[j],2);
+                dist=pow(rx[i]-rx[0],2) + pow(ry[i]-ry[0],2);
                 dist=sqrt(dist);
 
-                Vj=(m[j]*m[i])/dist; 
-                V+=Vj;
-                j++;
-            }
-            else j++;
-        }
-        i++;
+                V=-(m[0]*m[i])/dist; 
     }
-    V=-V/2; //De nuevo hacemos un solo cambio de signo en vez de n. No reseteamos V porque queremos la suma de todos los V_i. 
-            //Dividimos V/2 porque tuvimos en cuenta dos veces las interacciones
 
     return V;
 }
 
-void generacond (double  *rx, double *ry, double *vx, double *vy, int n)
+void generacond (double  *rx, double *ry, double *vx, double *vy, double *m, double *radio, int *tipo, int n)
 {
     int i; 
+    int signo; //Se usa para decidir si un número será positivo o negativo
 
     srand48(time(NULL)); //Creo la semilla para la generación aleatoria de números reales
 
-    for(i=1; i<n; i++) //Empezamos en 1 y no en 0 porque el Sol no tiene propiedades aleatorias
+    for(i=1; i<=n; i++) //Empezamos en 1 y no en 0 porque el Sol no tiene propiedades aleatorias
     {
+        if(i<=(n/10))
+        {
+            tipo[i]=1; //tipo=1 significará rocoso y tipo=0 significará; tipo=2 será Sol
+        }else tipo[i]=0;
+
         signo=rand()%2; //Genera un aleatorio entre 0 y 1
         if(signo==1)
         {
@@ -305,10 +300,161 @@ void generacond (double  *rx, double *ry, double *vx, double *vy, int n)
         signo=rand()%2;
         if(signo==1)
         {
-            vx[i]=-drand48()*30.0+30.0; 
+            vy[i]=-drand48()*0.02+0.02; 
         }
-        else vy[i]=drand48()*30.0+30.0;
+        else vy[i]=drand48()*0.02+0.02;
+
+        m[i]=1.7388e-17;
+        radio[i]=13.37e-9;
+        //La densidad media del sistema solar 1032.62 kg/m³
     }
 
     return ;
+}
+
+void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, double calortotal, int *tipo, int n)
+{
+    int i,j;
+    double dist, sumaradios; //Distancia entre cuerpos y suma de los radios de dos cuerpos
+    double vxprevia_i, vyprevia_i, vxprevia_j, vyprevia_j; //Almacena las velocidades antes del choque, necesarias para obtener el calor
+    double calorcolision; //Calor generado en una colisión
+
+    calortotal=0.0; //Inicializo el calor generado en este instante t
+
+    i=0; 
+    while(i<=n)  //CONSIDERAR CHOQUES ROCOSOS CON EL SOL
+    {
+        j=1; //El cuerpo j no puede ser el Sol 
+        while(j<=n)  //En este while veremos las distintas posibilidades de choque y sus resultados
+        {
+            if(tipo[i]==2 && tipo[j]==1) //Caso Sol con rocoso
+            {
+                dist=pow(rx[i]-rx[j],2) + pow(ry[i]-ry[j],2);
+                dist=sqrt(dist);
+                sumaradios=radio[i]+radio[j];
+
+                if(dist<=sumaradios)  //Si la distancia entre cuerpos rocosos es menor que su suma de radios hay colisión
+                {
+                    //Como hay colisión, vamos a calcular las nuevas variables del cuerpo generado por el choque
+                    vxprevia_i=vx[i]; 
+                    vyprevia_i=vy[i];
+                    vxprevia_j=vx[j];
+                    vyprevia_j=vy[j];
+                    vx[i] = (m[i]*vx[i]+m[j]*vx[j])/(m[i]+m[j]);
+                    vy[i] = (m[i]*vy[i]+m[j]*vy[j])/(m[i]+m[j]);
+
+                    calorcolision=calor(vx,vy,m,vxprevia_i,vyprevia_i,vxprevia_j,vyprevia_j,calortotal,n,i,j);
+                    calortotal=calortotal+calorcolision;
+
+                    radio[i] = radio[i] * pow((m[i]+m[j])/m[i], 1/3.0);
+
+                    m[i]+=m[j];   
+                    
+                    eliminacion(rx,ry,vx,vy,ax,ay,m,radio,tipo,n,j);
+                    j++;
+                }else j++; //Aquí no hay colisión 
+            }
+            else if(tipo[i]==1 && tipo[j]==1) //Caso ambos rocosos
+            {
+                dist=pow(rx[i]-rx[j],2) + pow(ry[i]-ry[j],2);
+                dist=sqrt(dist);
+                sumaradios=radio[i]+radio[j];
+
+                if(dist<=sumaradios)  //Si la distancia entre cuerpos rocosos es menor que su suma de radios hay colisión
+                {
+                    //Como hay colisión, vamos a calcular las nuevas variables del cuerpo generado por el choque
+                    vxprevia_i=vx[i]; 
+                    vyprevia_i=vy[i];
+                    vxprevia_j=vx[j];
+                    vyprevia_j=vy[j];
+                    vx[i] = (m[i]*vx[i]+m[j]*vx[j])/(m[i]+m[j]);
+                    vy[i] = (m[i]*vy[i]+m[j]*vy[j])/(m[i]+m[j]);
+
+                    calorcolision=calor(vx,vy,m,vxprevia_i,vyprevia_i,vxprevia_j,vyprevia_j,calortotal,n,i,j);
+                    calortotal=calortotal+calorcolision;
+
+                    radio[i] = radio[i] * pow((m[i]+m[j])/m[i], 1/3.0);
+
+                    m[i]+=m[j];   
+                    
+                    eliminacion(rx,ry,vx,vy,ax,ay,m,radio,tipo,n,j);
+                    j++;
+                }else j++; //Aquí no hay colisión 
+            }
+            else if(tipo[i]==1 && tipo[j]==0 || tipo[i]==0 && tipo[j]==1 || tipo[i]==0 && tipo[j]==0) //Casos uno rocoso-gaseoso y gaseoso-gaseoso
+            {
+                dist=pow(rx[i]-rx[0],2) + pow(ry[i]-ry[0],2); //distancia al sol del cuerpo i
+                dist=sqrt(dist);
+                if(dist>4) //Tomamos 4UA como la distancia a partir de la que los gaseosos interactuan como rocosos
+                {
+                    dist=pow(rx[0]-rx[j],2) + pow(ry[0]-ry[j],2); //distancia al sol del cuerpo j
+                    dist=sqrt(dist);
+                    if(dist>4)
+                    {
+                        dist=pow(rx[i]-rx[j],2) + pow(ry[i]-ry[j],2);
+                        dist=sqrt(dist);
+                        sumaradios=radio[i]+radio[j];
+
+                        if(dist<=sumaradios)  //Si la distancia entre cuerpos rocosos es menor que su suma de radios hay colisión
+                        {
+                            //Como hay colisión, vamos a calcular las nuevas variables del cuerpo generado por el choque
+                            vxprevia_i=vx[i];
+                            vyprevia_i=vy[i];
+                            vxprevia_j=vx[j];
+                            vyprevia_j=vy[j];
+                            vx[i] = (m[i]*vx[i]+m[j]*vx[j])/(m[i]+m[j]);
+                            vy[i] = (m[i]*vy[i]+m[j]*vy[j])/(m[i]+m[j]);
+
+                            calorcolision=calor(vx,vy,m,vxprevia_i,vyprevia_i,vxprevia_j,vyprevia_j,calortotal,n,i,j);
+                            calortotal=calortotal+calorcolision;
+
+                            radio[i] = radio[i] * pow((m[i]+m[j])/m[i], 1/3.0);
+
+                             m[i]+=m[j];  
+
+                             eliminacion(rx,ry,vx,vy,ax,ay,m,radio,tipo,n,j);
+                            j++;
+                        }else j++; 
+                    }else j++; 
+                }else j++;
+            }else j++;    
+        }
+        i++;
+    }
+
+    return ;
+}
+
+void eliminacion (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, int *tipo, int n, int j)
+{
+    int i;
+
+    //Vamos a eliminar un cuerpo j desplazando todos los objetos del vector y solapando al que antes era j
+    for(i=j;i<n;i++)
+    {
+        rx[i]=rx[i+1];
+        ry[i]=ry[i+1];
+        vx[i]=vx[i+1];
+        vy[i]=vy[i+1];
+        ax[i]=ax[i+1];
+        ay[i]=ay[i+1];
+        m[i]=m[i+1];
+        radio[i]=radio[i+1];
+        tipo[i]=tipo[i+1];
+    }
+    n=n-1;
+
+    return;
+}
+
+double calor (double *vx, double *vy, double *m, double vxprevia_i, double vyprevia_i, double vxprevia_j, double vyprevia_j, double calortotal, int n, int i, int j)
+{
+    double Tantes, Tdespues; //Energias cinéticas antes y despues
+    double calorcolision;
+
+    Tantes=0.5*m[i]*(pow(vxprevia_i,2)+pow(vyprevia_i,2))+0.5*m[j]*(pow(vxprevia_j,2)+pow(vyprevia_j,2));
+    Tdespues=0.5*(m[i]+m[j])*(pow(vx[i],2)+pow(vy[i],2));
+
+    calorcolision=Tantes-Tdespues;
+    return calorcolision;
 }
