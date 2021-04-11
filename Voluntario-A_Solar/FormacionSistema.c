@@ -41,13 +41,9 @@ int main(void)
     //Definimos parámetros
     h=0.05;
     hmedio=0.5*h;
-    n=60; 
+    n=50; 
     tsinchoques=0.0;
 
-    for(i=0; i<n; i++) //Inicializo el contador
-    {
-        contador[i]=0.0;
-    }
 
     //Ahora tenemos que asignar memoria dinámica a los vectores
     rx = (double*) malloc(n*sizeof(double));
@@ -73,6 +69,8 @@ int main(void)
         ry[0]=0.0; //Estas son las condiciones para el Sol, que no son aleatorias
         vx[0]=0.0;
         vy[0]=0.0;
+        ax[0]=0.0;
+        ay[0]=0.0;
         m[0]=1; //Una vez reescaladas las unidades se queda que el Sol tiene masa 1
         radio[0]=0.0046504; //radio solar en UA
         tipo[0]=2; //Tipo exclusivo del sol
@@ -96,7 +94,7 @@ int main(void)
 
         //Ahora vamos a comenzar un bucle while que ira avanzando en el tiempo de h en h y repitiendo el algoritmo de Verlet
         t=0.0+h;
-        while(tsinchoques<30.0)
+        while(tsinchoques<15.0)
         {
             posicion(rx, ry, vx, vy, ax, ay, wx, wy, n, hmedio, h); //Saco w(t) y r(t+h)
 
@@ -114,7 +112,6 @@ int main(void)
             //Ahora voy a escribir la energia para t en el fichero de energias para observar su evolución, se debe conservar
             fprintf(fenergia, "%e\t%e\t%e\n", energia, V, T);
         
-
             t+=h; //Aumento t en un paso y volvemos a empezar con el bucle, así hasta que se llegue al tiempo máximo
         }
         //Cuando ha pasado suficiente tiempo sin choques consideramos que nos encontramos en una situación de estabilidad, entonces habrá que observar las características
@@ -238,13 +235,15 @@ double potencial (double *rx, double *ry, double *m, double V, int n)
     double dist; //Distancia entre dos cuerpos
 
     V=0.0;
-    i=0;
+    i=1;
     while(i<n) //While para sacar el potencial de un cuerpo i, solo tenemos en cuenta su interaccion con el sol esta vez
     {
                 dist=pow(rx[i]-rx[0],2) + pow(ry[i]-ry[0],2);
                 dist=sqrt(dist);
 
                 V=-(m[0]*m[i])/dist; 
+
+                i++;
     }
 
     return V;
@@ -340,7 +339,6 @@ void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, dou
                     
                     eliminacion(rx,ry,vx,vy,ax,ay,m,radio,tipo,n,j);
                     tsinchoques=0.0;
-                    j++;
                 }else j++; //Aquí no hay colisión 
             }
             else if(tipo[i]==1 && tipo[j]==1) //Caso ambos rocosos
@@ -368,7 +366,6 @@ void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, dou
                     
                     eliminacion(rx,ry,vx,vy,ax,ay,m,radio,tipo,n,j);
                     tsinchoques=0.0;
-                    j++;
                 }else j++; //Aquí no hay colisión 
             }
             else if((tipo[i]==1 && tipo[j]==0) || (tipo[i]==0 && tipo[j]==1) || (tipo[i]==0 && tipo[j]==0)) //Casos uno rocoso-gaseoso y gaseoso-gaseoso
@@ -377,36 +374,30 @@ void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, dou
                 dist=sqrt(dist);
                 if(dist>4.0) //Tomamos 4UA como la distancia a partir de la que los gaseosos interactuan como rocosos
                 {
-                    dist=pow(rx[0]-rx[j],2) + pow(ry[0]-ry[j],2); //distancia al sol del cuerpo j
+                    dist=pow(rx[i]-rx[j],2) + pow(ry[i]-ry[j],2);
                     dist=sqrt(dist);
-                    if(dist>4.0)
+                    sumaradios=radio[i]+radio[j];
+
+                    if(dist<=sumaradios)  //Si la distancia entre cuerpos "rocosos" es menor que su suma de radios hay colisión
                     {
-                        dist=pow(rx[i]-rx[j],2) + pow(ry[i]-ry[j],2);
-                        dist=sqrt(dist);
-                        sumaradios=radio[i]+radio[j];
+                        //Como hay colisión, vamos a calcular las nuevas variables del cuerpo generado por el choque
+                        vxprevia_i=vx[i];
+                        vyprevia_i=vy[i];
+                        vxprevia_j=vx[j];
+                        vyprevia_j=vy[j];
+                        vx[i] = (m[i]*vx[i]+m[j]*vx[j])/(m[i]+m[j]);
+                        vy[i] = (m[i]*vy[i]+m[j]*vy[j])/(m[i]+m[j]);
 
-                        if(dist<=sumaradios)  //Si la distancia entre cuerpos rocosos es menor que su suma de radios hay colisión
-                        {
-                            //Como hay colisión, vamos a calcular las nuevas variables del cuerpo generado por el choque
-                            vxprevia_i=vx[i];
-                            vyprevia_i=vy[i];
-                            vxprevia_j=vx[j];
-                            vyprevia_j=vy[j];
-                            vx[i] = (m[i]*vx[i]+m[j]*vx[j])/(m[i]+m[j]);
-                            vy[i] = (m[i]*vy[i]+m[j]*vy[j])/(m[i]+m[j]);
+                        calorcolision=calor(vx,vy,m,vxprevia_i,vyprevia_i,vxprevia_j,vyprevia_j,i,j);
+                        calortotal=calortotal+calorcolision;
 
-                            calorcolision=calor(vx,vy,m,vxprevia_i,vyprevia_i,vxprevia_j,vyprevia_j,i,j);
-                            calortotal=calortotal+calorcolision;
+                        radio[i] = radio[i] * pow((m[i]+m[j])/m[i], 1/3.0);
 
-                            radio[i] = radio[i] * pow((m[i]+m[j])/m[i], 1/3.0);
+                        m[i]+=m[j];  
 
-                             m[i]+=m[j];  
-
-                             eliminacion(rx,ry,vx,vy,ax,ay,m,radio,tipo,n,j);
-                             tsinchoques=0.0;
-                            j++;
-                        }else j++; 
-                    }else j++; 
+                        eliminacion(rx,ry,vx,vy,ax,ay,m,radio,tipo,n,j);
+                        tsinchoques=0.0;
+                    }else j++;
                 }else j++;
             }else j++;    
         }
@@ -452,7 +443,7 @@ void eliminacion (double *rx, double *ry, double *vx, double *vy, double *ax, do
     }
 
 
-    return;
+    return ;
 }
 
 double calor (double *vx, double *vy, double *m, double vxprevia_i, double vyprevia_i, double vxprevia_j, double vyprevia_j, int i, int j)
