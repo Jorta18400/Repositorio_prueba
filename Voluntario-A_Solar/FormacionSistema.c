@@ -13,8 +13,8 @@ void velocidad (double *vx, double *vy, double *wx, double *wy, double *ax, doub
 double cinetica (double *vx, double *vy, double *m, double T, int n); //Función que devuelve la energía cinética total del sistema
 double potencial (double *rx, double *ry, double *m, double V, int n); //Función que devuelve la energía cinética total del sistema
 void generacond (double *rx, double *ry, double *vx, double *vy, double *m, double *radio, int *tipo, int n); //Función para generar las condiciones iniciales
-void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, double calortotal, double tsinchoques, int *tipo, int n); //Funcion que trabaja con las colisiones de planetesimales
-void eliminacion (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, int *tipo, int n, int j); //Elimina un cuerpo del sistema
+void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, double calortotal, double tsinchoques, int *tipo, int n, FILE *fplanetas); //Funcion que trabaja con las colisiones de planetesimales
+double eliminacion (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, int *tipo, int n, int j); //Elimina un cuerpo del sistema
 double calor (double *vx, double *vy, double *m, double vxprevia_i, double vyprevia_i, double vxprevia_j, double vyprevia_j, int i,int j); //Calcula la diferencia entre energias cinéticas en el choque y la interpreta como calor 
 
 int main(void)
@@ -39,9 +39,9 @@ int main(void)
     fplanetas=fopen("PlanetasFormados.txt","w");
   
     //Definimos parámetros
-    h=0.05;
+    h=0.01;
     hmedio=0.5*h;
-    n=50; 
+    n=500; 
     tsinchoques=0.0;
 
 
@@ -104,7 +104,7 @@ int main(void)
 
             //Tenemos las posiciones y velocidades en t+h vamos a evaluar si hay colisiones y como se dan
             tsinchoques=tsinchoques+h; //Aumentamos el tiempo que paso sin haber un choque, si hay una colisión se reseteará a 0
-            colisiones(rx,ry,vx,vy,ax,ay,m,radio,calortotal,tsinchoques,tipo,n);
+            colisiones(rx,ry,vx,vy,ax,ay,m,radio,calortotal,tsinchoques,tipo,n,fplanetas);
 
             T=cinetica(vx,vy,m,T,n); //Aquí saco las energias para este t
             V=potencial(rx,ry,m,V,n);
@@ -126,10 +126,10 @@ int main(void)
         }
         fprintf(fposiciones, "\n"); //Escribo un salto de línea para diferencias las posiciones después de cada caso de estabilidad
 
-        //Las características de los planetas formados las escribiremos en un fichero con el formato #masa #radio
+        //Las características de los planetas formados las escribiremos en un fichero con el formato #masa #radio #tipo
         for(i=0;i<n;i++)
         {
-            fprintf(fplanetas, "%e\t%e\n", m[i], radio[i]);
+            fprintf(fplanetas, "%e\t%e\t%i\n", m[i], radio[i], tipo[i]);
         }
         fprintf(fplanetas, "\n");
 
@@ -299,7 +299,7 @@ void generacond (double  *rx, double *ry, double *vx, double *vy, double *m, dou
     return ;
 }
 
-void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, double calortotal, double tsinchoques, int *tipo, int n)
+void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, double calortotal, double tsinchoques, int *tipo, int n, FILE *fplanetas)
 {
     int i,j;
     double dist, sumaradios; //Distancia entre cuerpos y suma de los radios de dos cuerpos
@@ -311,10 +311,11 @@ void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, dou
     i=0; 
     while(i<n)  
     {
+        fprintf(fplanetas, "%e\t%i\n", calortotal, n);
         j=1; //El cuerpo j no puede ser el Sol 
         while(j<n)  //En este while veremos las distintas posibilidades de choque y sus resultados
         {
-            if(tipo[i]==2 && tipo[j]==1) //Caso Sol con rocoso
+            if(tipo[i]==2) //Caso Sol con cualquiera
             {
                 dist=pow(rx[i]-rx[j],2) + pow(ry[i]-ry[j],2);
                 dist=sqrt(dist);
@@ -333,11 +334,13 @@ void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, dou
                     calorcolision=calor(vx,vy,m,vxprevia_i,vyprevia_i,vxprevia_j,vyprevia_j,i,j);
                     calortotal=calortotal+calorcolision;
 
+                    fprintf(fplanetas, "ojo cuidao\n");
+
                     radio[i] = radio[i] * pow((m[i]+m[j])/m[i], 1/3.0);
 
                     m[i]+=m[j];   
                     
-                    eliminacion(rx,ry,vx,vy,ax,ay,m,radio,tipo,n,j);
+                    n=eliminacion(rx,ry,vx,vy,ax,ay,m,radio,tipo,n,j);
                     tsinchoques=0.0;
                 }else j++; //Aquí no hay colisión 
             }
@@ -360,11 +363,13 @@ void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, dou
                     calorcolision=calor(vx,vy,m,vxprevia_i,vyprevia_i,vxprevia_j,vyprevia_j,i,j);
                     calortotal=calortotal+calorcolision;
 
+                    fprintf(fplanetas, "ojo cuidao\n");
+            
                     radio[i] = radio[i] * pow((m[i]+m[j])/m[i], 1/3.0);
 
                     m[i]+=m[j];   
                     
-                    eliminacion(rx,ry,vx,vy,ax,ay,m,radio,tipo,n,j);
+                    n=eliminacion(rx,ry,vx,vy,ax,ay,m,radio,tipo,n,j);
                     tsinchoques=0.0;
                 }else j++; //Aquí no hay colisión 
             }
@@ -391,11 +396,13 @@ void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, dou
                         calorcolision=calor(vx,vy,m,vxprevia_i,vyprevia_i,vxprevia_j,vyprevia_j,i,j);
                         calortotal=calortotal+calorcolision;
 
+                        fprintf(fplanetas, "ojo cuidao\t%i\n", n);
+
                         radio[i] = radio[i] * pow((m[i]+m[j])/m[i], 1/3.0);
 
                         m[i]+=m[j];  
 
-                        eliminacion(rx,ry,vx,vy,ax,ay,m,radio,tipo,n,j);
+                        n=eliminacion(rx,ry,vx,vy,ax,ay,m,radio,tipo,n,j);
                         tsinchoques=0.0;
                     }else j++;
                 }else j++;
@@ -407,23 +414,13 @@ void colisiones (double *rx, double *ry, double *vx, double *vy, double *ax, dou
     return ;
 }
 
-void eliminacion (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, int *tipo, int n, int j)
+double eliminacion (double *rx, double *ry, double *vx, double *vy, double *ax, double *ay, double *m, double *radio, int *tipo, int n, int j)
 {
     int i;
 
     //Vamos a eliminar un cuerpo j desplazando todos los objetos del vector y solapando al que antes era j
     if(j==(n-1)) //Esto por si justamente colisiona el cuerpo que es el último del vector 
-    {
-        rx[j]=0.0;
-        ry[j]=0.0;
-        vx[j]=0.0;
-        vy[j]=0.0;
-        ax[j]=0.0;
-        ay[j]=0.0;
-        m[j]=0.0;
-        radio[j]=0.0;
-        tipo[j]=0.0;     
-
+    {    
         n=n-1;      
     }else
     {
@@ -443,17 +440,17 @@ void eliminacion (double *rx, double *ry, double *vx, double *vy, double *ax, do
     }
 
 
-    return ;
+    return n;
 }
 
 double calor (double *vx, double *vy, double *m, double vxprevia_i, double vyprevia_i, double vxprevia_j, double vyprevia_j, int i, int j)
 {
     double Tantes, Tdespues; //Energias cinéticas antes y despues
-    double calorcolision;
+    double calorchoque;
 
     Tantes=0.5*m[i]*(pow(vxprevia_i,2)+pow(vyprevia_i,2))+0.5*m[j]*(pow(vxprevia_j,2)+pow(vyprevia_j,2));
     Tdespues=0.5*(m[i]+m[j])*(pow(vx[i],2)+pow(vy[i],2));
 
-    calorcolision=Tantes-Tdespues;
-    return calorcolision;
+    calorchoque=Tantes-Tdespues;
+    return calorchoque;
 }
