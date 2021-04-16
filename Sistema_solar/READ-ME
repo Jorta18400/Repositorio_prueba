@@ -1,0 +1,10 @@
+Hola Juani, dejo este txt para explicar un poco que es cada archivo dentro de esta carpeta y sobre todo para comentar que hice para obtener el video con 
+el sistema solar alterado. 
+
+Hay tres archivos de condiciones iniciales, uno estándar para el sistema solar normal, otro con las posiciones relativas a la Tierra (este no era necesario como
+tal pero resulta interesante ejecutarlo con Sistema_solar.c para ver los planetas moverse alrededor del Sol en espiral, ya que el Sol no esta fijo) y un último 
+con las condiciones iniciales anómalas con las que generé el sistema solar alterado.
+
+Los vídeos en mp4 están en mala calidad, el script no permite cambiar su resolución, pero como se ve lo que interesa no hay mayor problema. El "planetas.mp4" no 
+es más que el sistema solar normal, mientras que en el alterado moví la Tierra cerca de Júpiter y Plutón entre Urano y Neptuno. El resultado es que la Tierra
+sale despedida y Plutón cierra mucho su órbita, viéndose además muy claramente su forma de elipse.
