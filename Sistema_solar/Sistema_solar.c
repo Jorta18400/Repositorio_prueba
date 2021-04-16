@@ -18,6 +18,7 @@ int main(void)
     double h, hmedio, energia, t, tmax; //h es el paso, t el tiempo y tmax el tope de tiempo que estara el programa simulando
     int i;  //contador
     int n; //n es número de cuerpos
+    int impresion; //Esta variable va a decidir cuando se hace print en el fichero de las posiciones nuevas
     double *rx, *vx, *ax, *ry, *vy, *ay, *wx, *wy, *m; //posiciones, aceleraciones, velocidades, momentos angulares, masa
     double *contador, *periodo, *kx, *ky, dist; //Un contador y el periodo de cada cuerpo. Las k serán las posiciones iniciales de cada cuerpo. Dist es distancia entre dos cuerpos
     double V,T; //Energías potencial y cinética
@@ -25,15 +26,16 @@ int main(void)
 
     //Abrimos los ficheros, la estructura del de condiciones iniciales es: #masa #posicion x #posicion y  #velocidad x #velocidad y
     fposiciones=fopen("Posiciones.txt", "w");
-    fcond=fopen("Condiciones_iniciales.txt","r");
+    fcond=fopen("CondicionesAlteradas.txt","r");
     fenergia=fopen("Energias.txt", "w");
     fperiodo=fopen("Periodo.txt", "w");
   
     //Definimos parámetros
-    h=0.05;
+    h=0.1;
     hmedio=0.5*h;
     n=10; 
-    tmax=1800.0;
+    tmax=1600.0;
+    impresion=0;
 
     for(i=0; i<n; i++) //Inicializo el contador
     {
@@ -54,7 +56,7 @@ int main(void)
     periodo = (double*) malloc(n*sizeof(double));
     kx = (double*) malloc(n*sizeof(double));
     ky = (double*) malloc(n*sizeof(double));
-
+    
     //leemos las condiciones iniciales
     for(i=0; i<n; i++)
     {
@@ -94,11 +96,15 @@ int main(void)
         velocidad(vx, vy, wx, wy, ax, ay, n, hmedio); //Aquí saco v(t+h) usando lo anterior
 
         //Ahora voy a escribir en fichero las nuevas posiciones halladas para t+h
-        for(i=0;i<n;i++)
+        impresion++;
+        if(impresion%5==0)
         {
-            fprintf(fposiciones, "%e,\t%e\n", rx[i], ry[i]);
+            for(i=0;i<n;i++)
+            {
+                fprintf(fposiciones, "%e,\t%e\n", rx[i], ry[i]);
+            }
+            fprintf(fposiciones, "\n"); //Aquí introduzco de nuevo un salto de línea para dejar un espacio entre cada tanda de posiciones
         }
-        fprintf(fposiciones, "\n"); //Aquí introduzco de nuevo un salto de línea para dejar un espacio entre cada tanda de posiciones
 
         //Ahora voy a escribir la energia para t en el fichero de energias para observar su evolución, se debe conservar
         fprintf(fenergia, "%e\t%e\t%e\n", energia, V, T);
