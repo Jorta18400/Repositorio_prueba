@@ -26,12 +26,12 @@ int main(void)
 
     //Abrimos los ficheros, la estructura del de condiciones iniciales es: #masa #posicion x #posicion y  #velocidad x #velocidad y
     fposiciones=fopen("Posiciones.txt", "w");
-    fcond=fopen("CondicionesAlteradas.txt","r");
+    fcond=fopen("Condiciones_iniciales.txt","r");
     fenergia=fopen("Energias.txt", "w");
     fperiodo=fopen("Periodo.txt", "w");
   
     //Definimos parámetros
-    h=0.1;
+    h=0.05;
     hmedio=0.5*h;
     n=10; 
     tmax=1600.0;

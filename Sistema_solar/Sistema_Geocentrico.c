@@ -18,6 +18,7 @@ int main(void)
     double *rx, *vx, *ax, *ry, *vy, *ay, *wx, *wy, *m; //posiciones, aceleraciones, velocidades, momentos angulares, masa
     double *contador, *periodo, *kx, *ky, dist; //Un contador y el periodo de cada cuerpo. Las k serán las posiciones iniciales de cada cuerpo. Dist es distancia entre dos cuerpos
     double V,T; //Energías potencial y cinética
+    int impresion;
     FILE *fposiciones, *fcond, *fenergia, *fperiodo; 
     //Abrimos los ficheros, la estructura del de condiciones iniciales es: #masa #posicion x #posicion y  #velocidad x #velocidad y
     fposiciones=fopen("Posiciones.txt", "w");
@@ -26,10 +27,11 @@ int main(void)
     fperiodo=fopen("Periodo.txt", "w");
 
     //Definimos parámetros
-    h=0.05;
+    h=0.1;
     hmedio=0.5*h;
     n=10; 
-    tmax=1800.0;
+    tmax=1600.0;
+    impresion=0;
   
     for(i=0; i<n; i++) //Inicializo el contador
     {
@@ -87,11 +89,15 @@ int main(void)
         velocidad(vx, vy, wx, wy, ax, ay, n, hmedio); //Aquí saco v(t+h) usando lo anterior
 
         //Ahora voy a escribir en fichero las nuevas posiciones halladas para t+h
-        for(i=0;i<n;i++)
+        impresion++;
+        if(impresion%5==0)
         {
-            fprintf(fposiciones, "%e,\t%e\n", (rx[i]-rx[3]), (ry[i]-ry[3]));
+            for(i=0;i<n;i++)
+            {
+                fprintf(fposiciones, "%e,\t%e\n", (rx[i]-rx[3]), (ry[i]-ry[3]));
+            }
+            fprintf(fposiciones, "\n"); //Aquí introduzco de nuevo un salto de línea para dejar un espacio entre cada tanda de posiciones
         }
-        fprintf(fposiciones, "\n"); //Aquí introduzco de nuevo un salto de línea para dejar un espacio entre cada tanda de posiciones
 
         for(i=0;i<n;i++) //Ahora voy a escribir la energia para t en el fichero de energias para observar su evolución, se debe conservar
         {
