@@ -25,7 +25,7 @@
 #
 # donde s(i,j)_k es el valor del spin en la fila i-ésima y la columna
 # j-ésima en el instante k. M es el número de columnas y N el número
-# de filas en el retículo.
+# de filas en el retículo. Los valores del spin deben ser +1 ó -1.
 # El programa asume que las dimensiones del retículo no cambian a lo
 # largo del tiempo.
 # 
@@ -45,12 +45,12 @@ import io
 
 # Parámetros
 # ========================================
-file_in = "ising_data.dat" # Nombre del fichero de datos
+file_in = "Redes.txt" # Nombre del fichero de datos
 file_out = "ising" # Nombre del fichero de salida (sin extensión)
-interval = 100 # Tiempo entre fotogramas en milisegundos
-save_to_file = False # False: muestra la animación por pantalla,
+interval = 50 # Tiempo entre fotogramas en milisegundos
+save_to_file = True # False: muestra la animación por pantalla,
                      # True: la guarda en un fichero
-dpi = 150 # Calidad del vídeo de salida (dots per inch)
+dpi = 250 # Calidad del vídeo de salida (dots per inch)
 
 
 # Lectura del fichero de datos
@@ -84,7 +84,7 @@ fig, ax = plt.subplots()
 ax.axis("off")  # No muestra los ejes
 
 # Representa el primer fotograma
-im = ax.imshow(frames_data[0], cmap="binary")
+im = ax.imshow(frames_data[0], cmap="binary", vmin=-1, vmax=+1)
  
 # Función que actualiza la configuración del sistema en la animación
 def update(j_frame, frames_data, im):
@@ -104,7 +104,7 @@ if nframes > 1:
 
     # Muestra por pantalla o guarda según parámetros
     if save_to_file:
-        animation.save("{}.mp4".format(file_out, dpi=dpi))
+        animation.save("{}.mp4".format(file_out), dpi=dpi)
     else:
         plt.show()
 # En caso contrario, muestra o guarda una imagen
