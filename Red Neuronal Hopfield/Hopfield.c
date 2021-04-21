@@ -3,21 +3,24 @@
 #include<math.h>
 #include"gsl_rng.h"
 
+#define N 40 //Tamaño red
+#define mu 1 //Nº de patrones almacenados
+
+
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
 
-double Energia(int** s, int n, int m, int mu, int N, double*** patrones); //Función que calcula la \Delta E
+double Energia (int s[N+1][N+1], int n, int m, double patrones[mu][N][N],double w[N][N][N][N], double a[mu], double theta[N][N]); //Función que calcula la \Delta E
 
 int main(void)
 {
     extern gsl_rng *tau;
-    int i,j,k,l,mu; //Contadores, mu es el número de patrones almacenados
-    double T,E,p;
-    int n,m; //Más contadores
-    int N; //Esto define el tamaño de la red
-    int*** patrones; //Matriz 3d de N*N*N para almacenar patrones
-    int** s;  //Esta será la matriz de espines que compone la red
-    double* m; //Este es el vector que almacena los solapamientos para cada patrón
+    int i,j,k,l,n,m; //Contadores, mu es el número de patrones almacenados
+    double T,E,p; //Temperatura, energía y el parámetro p
+    int patrones[mu][N][N]; //Matriz 3d de mu*N*N para almacenar patrones
+    int s[N][N];  //Esta será la matriz de espines que compone la red
+    double solap[mu]; //Este es el vector que almacena los solapamientos para cada patrón
     int pasos; //Número de pasos montecarlo que vamos a dar
+    double w[N][N][N][N], a[mu], theta[N][N];
     double ji; //Es un número aleatorio
     FILE *finicial, *fred; //Ficheros inicial de donde sacamos el patron y red generada
 
@@ -26,39 +29,27 @@ int main(void)
 
     //Damos valores a las variables
     T=0.0001; 
-    N=40;
-    mu=1;
     pasos=N*N; //Vamos a dar N² pasos montecarlo, o sea N⁴ iteraciones
 
-    m=(double*) malloc(mu*sizeof(double)); //Creamos el vector dinámico de solapamientos
-
-    s = (int**) malloc((N+1)*sizeof(int*));  //Hacemos de s un array dinámico
-
-    for (int i = 0; i <= N; i++)  //Y de cada uno de sus elementos otro array dinámico, creando una matriz dinámica
-    {
-        s[i] = (int*) malloc((N+1)*sizeof(int));  
-    }
-
-    patrones=(int***) malloc(mu*sizeof(int**)); //Array de 3 dimensiones y memoria dinámica
-    for(i=0;i<mu;i++)
-    {
-        patrones[i]=(int**) malloc(N*sizeof(int*));
-        for(j=0;j<N;j++)
-        {
-            patrones[i][j]=(int*) malloc(N*sizeof(int));
-        }
-    }
-   
     int semilla=6942069;
     tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
     gsl_rng_set(tau,semilla);
  
     //Debemos empezar dando la configuracion inicial de espines, vamos a empezar con una configuracion aleatoria
-    for(i=0;i<=N;i++)
+    for(i=0;i<N;i++)
     {
-        for(j=0;j<=N;j++) //Esto es menor igual porque definí un array de tamaño N+1 para poder implementar las condiciones periodicas estas de que s[N+1][j]=s[1][j]
+        for(j=0;j<N;j++) //Esto es menor igual porque definí un array de tamaño N+1 para poder implementar las condiciones periodicas estas de que s[N+1][j]=s[1][j]
         {
             s[i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
+        }
+    }
+    
+    //Ahora vamos a leer los patrones que queremos guardar
+    for(i=0;i<N;i++)
+    {
+        for(j=0;j<N;j++)
+        {
+            fscanf( finicial, "%i", &(patrones[0][i][j]]) );
         }
     }
 
@@ -70,14 +61,14 @@ int main(void)
             m=gsl_rng_uniform_int(tau,N); //Genero un número entre 0 y N-1, con n y m tengo una posición aleatoria del vector
 
             //Antes de meterno en ningún cálculo vamos a establecer las condiciones periódicas
-            for(j=0;j<N;j++)
-            {
-                s[0][j]=s[N][j];
-                s[j][0]=s[j][N];
-            }
+//            for(j=0;j<N;j++)
+//            {
+//                s[0][j]=s[N][j];
+//                s[j][0]=s[j][N];
+//            }
 
             //Debemos calcular p ahora, para lo que necesitamos primero la Energía
-            E=Energia(s,n,m,mu,N,patrones);
+            E=Energia(s,n,m,patrones,w,a,theta);
             if(T==0.0)
             {
                 p=0.0;
@@ -92,74 +83,102 @@ int main(void)
 
             if(ji<p)
             {
-                s[n][m]=-s[n][m];  //Si el número aleatorio generado es menor que p entonces cambiamos el signo del espín
-            }
-
-            //Ahora vamos a escribir en fichero la posición actual
-            for(j=0;j<N;j++)
-            {
-                for(l=0;l<N;l++)
+                if(s[n][m]==1) //Cambiamos el valor del espín si se cumple la condicion de que ji<p
                 {
-                    if(l==(N-1)) //Si es el último elemento de la fila hacemos salto de línea
-                    {
-                        fprintf(fred, "%i\n", s[j][l]);
-                    }else fprintf(fred, "%i,\t", s[j][l]);
-                }
+                    s[n][m]=0;
+                }else s[n][m]=1;
             }
-            fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red
         }
+        //Ahora vamos a escribir en fichero la posición actual
+        for(j=0;j<N;j++)
+        {
+            for(l=0;l<N;l++)
+            {
+                if(l==(N-1)) //Si es el último elemento de la fila hacemos salto de línea
+                {
+                    fprintf(fred, "%i\n", s[j][l]);
+                }else fprintf(fred, "%i,\t", s[j][l]);
+            }
+        }
+        fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red
     }
 
 
     fclose(fred);
     fclose(finicial);
-    free(m);
-
-    for (i = 0; i <= N; i++)
-    {  
-        free(s[i]);  //Libero memoria del array doble dinámico
-    }  
-    free(s); 
-
-    for(i=0;i<N;i++)
-    {
-        for(j=0;j<N;j++)
-        {
-           free(patrones[i][j]); //Libero el array 3d
-        }
-    }
-    for (i = 0; i <= N; i++)
-    {  
-        free(patrones[i]);
-    }  
-    free(patrones);
 
     return 0;
 }
 
 //Veamos las funciones
-double Energia(int** s, int n, int m, int mu,int N, double*** patrones)
+double Energia (int s[N+1][N+1], int n, int m, double patrones[mu][N][N],double w[N][N][N][N], double a[mu], double theta[N][N])
 {
-    int i,j,k,l; //Contadores
+    int i,j,k,l,h; //Contadores
     double dE; //Delta E
-    double* a; //Es la propia a definida en el pdf
 
-    a=(double*) malloc(mu*sizeof(double));
-
-    for(i=0;i<mu;i++)
+    for(i=0;i<mu;i++) 
     {
         a[i]=0.0; //Inicializo a
     }
-    for(k=0;k<mu;k++) //Calculo a
+    for(k=0;k<mu;k++) //Calculamos a para empezar
     {
         for(i=0;i<N;i++)
         {
             for(j=0;j<N;j++)
             {
-                a[k]=patrones[k][i][j];
+                a[k]+=patrones[k][i][j];
             }
         }
         a[k]=1/(N*N)*a[k];
+    }
+
+    for(h=0;h<mu;h++) //Calculamos la función de pesos sinápticos w
+    {
+        for(i=0;i<N;i++)
+        {
+            for(j=0;j<N;j++)
+            {
+                for(k=0;k<N;k++)
+                {
+                    for(l=0;l<N;l++)
+                    {
+                        if(i==k && j==l)
+                        {
+                            w[i][j][k][l]=0;
+                        }else
+                        {
+                            w[i][j][k][l]=(patrones[h][i][j]-a[h]) * (patrones[h][k][l]-a[h]);
+                        }
+                    }
+                }
+            }
+        }
+        w[i][j][k][l] = w[i][j][k][l]/(1.0*N*N);
+    }
+    
+    for(k=0;k<N;k++) //Vamos ahora con el cálculo del umbral de disparo
+    {
+        for(l=0;l<N;l++)
+        {
+            theta[n][m] += w[n][m][k][l];
+        }
+    }
+    theta[n][m]=0.5*theta[n][m];
+
+    //Calculemos la diferencia de energia entre el estado en el que estamos y al que sería posible que pasáramos
+    if(s[n][m]==0)
+    {
+        for(i=0;i<N;i++)
+        {
+            for(j=0;j<N;j++)
+            {
+                dE=N*N*theta[i][j]*(-1)+(1)*(w[n][m][i][j]);
+            }
+        }
+    }
+    else
+    {
+
     }
 
     
@@ -167,10 +186,5 @@ double Energia(int** s, int n, int m, int mu,int N, double*** patrones)
 
 
     
-
-
-    dE=2*s[n][m]*(s[n+1][m]+s[n+1][m]+s[n][m+1]+s[n][m+1]);
-
-    free(mu);
     return dE;
 }
