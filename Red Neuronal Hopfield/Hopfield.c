@@ -9,7 +9,7 @@
 
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
 
-double Energia (int s[N+1][N+1], int n, int m, double patrones[mu][N][N],double w[N][N][N][N], double a[mu], double theta[N][N]); //Función que calcula la \Delta E
+double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N][N][N], double a[mu], double theta[N][N]); //Función que calcula la \Delta E
 
 int main(void)
 {
@@ -22,16 +22,17 @@ int main(void)
     int pasos; //Número de pasos montecarlo que vamos a dar
     double w[N][N][N][N], a[mu], theta[N][N];
     double ji; //Es un número aleatorio
-    FILE *finicial, *fred; //Ficheros inicial de donde sacamos el patron y red generada
+    FILE *finicial, *fred, *fsolap; //Ficheros inicial de donde sacamos el patron y red generada
 
     finicial=fopen("Juan(40x40).txt", "r"); //Abro ficheros
     fred=fopen("Red.txt","w");
+    fsolap=fopen("Solapamiento.txt","w");
 
     //Damos valores a las variables
     T=0.0001; 
     pasos=N*N; //Vamos a dar N² pasos montecarlo, o sea N⁴ iteraciones
 
-    int semilla=6942069;
+    int semilla=69420;
     tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
     gsl_rng_set(tau,semilla);
  
@@ -49,18 +50,18 @@ int main(void)
     {
         for(j=0;j<N;j++)
         {
-            fscanf( finicial, "%i", &(patrones[0][i][j]]) );
+            fscanf( finicial, "%i", &(patrones[0][i][j]) );
         }
     }
 
-    for(k=0;k<pasos;k++) //En este for se hace el core del código, se van buscando las posiciones aleatorias y viendo si se cambia su signo o no
+    for(k=0;k<200;k++) //En este for se hace el core del código, se van buscando las posiciones aleatorias y viendo si se cambia su signo o no
     {
         for(i=0;i<pasos;i++)
         {
             n=gsl_rng_uniform_int(tau,N);
             m=gsl_rng_uniform_int(tau,N); //Genero un número entre 0 y N-1, con n y m tengo una posición aleatoria del vector
 
-            //Antes de meterno en ningún cálculo vamos a establecer las condiciones periódicas
+            //Antes de meternos en ningún cálculo vamos a establecer las condiciones periódicas
 //            for(j=0;j<N;j++)
 //            {
 //                s[0][j]=s[N][j];
@@ -89,6 +90,8 @@ int main(void)
                 }else s[n][m]=1;
             }
         }
+        //Calculemos el solapamiento para la red que queda tras este paso montecarlo
+        
         //Ahora vamos a escribir en fichero la posición actual
         for(j=0;j<N;j++)
         {
@@ -106,12 +109,13 @@ int main(void)
 
     fclose(fred);
     fclose(finicial);
+    fclose(fsolap);
 
     return 0;
 }
 
 //Veamos las funciones
-double Energia (int s[N+1][N+1], int n, int m, double patrones[mu][N][N],double w[N][N][N][N], double a[mu], double theta[N][N])
+double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N][N][N], double a[mu], double theta[N][N])
 {
     int i,j,k,l,h; //Contadores
     double dE; //Delta E
@@ -166,25 +170,16 @@ double Energia (int s[N+1][N+1], int n, int m, double patrones[mu][N][N],double 
     theta[n][m]=0.5*theta[n][m];
 
     //Calculemos la diferencia de energia entre el estado en el que estamos y al que sería posible que pasáramos
-    if(s[n][m]==0)
-    {
         for(i=0;i<N;i++)
         {
             for(j=0;j<N;j++)
             {
-                dE=N*N*theta[i][j]*(-1)+(1)*(w[n][m][i][j]);
+                if(s[n][m]==0) //El signo cambia en función de cual fuese el estado incial de s[n][m] 
+                {
+                    dE=theta[n][m]*(-1)+(1)*0.5*(w[n][m][i][j]*s[i][j]);
+                }else dE=theta[n][m]*(1)+(-1)*0.5*(w[n][m][i][j]*s[i][j]);               
             }
         }
-    }
-    else
-    {
-
-    }
-
-    
-
-
-
     
     return dE;
 }
