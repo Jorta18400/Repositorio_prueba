@@ -9,6 +9,10 @@
                 "${file}",
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}",
+                "-lm", 
+                "-L/usr/lib/x86_64-linux-gnu",
+                "-lgsl",
+                "-lgslcblas",
                 "-lm",
             ],
             "options": {

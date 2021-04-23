@@ -46,7 +46,7 @@ import io
 # Parámetros
 # ========================================
 file_in = "Redes.txt" # Nombre del fichero de datos
-file_out = "ising" # Nombre del fichero de salida (sin extensión)
+file_out = "ising_desordena" # Nombre del fichero de salida (sin extensión)
 interval = 50 # Tiempo entre fotogramas en milisegundos
 save_to_file = True # False: muestra la animación por pantalla,
                      # True: la guarda en un fichero

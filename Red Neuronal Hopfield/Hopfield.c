@@ -3,7 +3,7 @@
 #include<math.h>
 #include"gsl_rng.h"
 
-#define N 40 //Tamaño red
+#define N 20 //Tamaño red
 #define mu 1 //Nº de patrones almacenados
 
 
@@ -24,7 +24,7 @@ int main(void)
     double ji; //Es un número aleatorio
     FILE *finicial, *fred, *fsolap; //Ficheros inicial de donde sacamos el patron y red generada
 
-    finicial=fopen("Juan(40x40).txt", "r"); //Abro ficheros
+    finicial=fopen("Xd(20x20).txt", "r"); //Abro ficheros
     fred=fopen("Red.txt","w");
     fsolap=fopen("Solapamiento.txt","w");
 

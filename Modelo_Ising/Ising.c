@@ -22,7 +22,7 @@ int main(void)
     fred=fopen("Redes.txt", "w"); //Abro el fichero
 
     //Damos valores a las variables
-    T=1.0; 
+    T=5.0; 
     N=50;
     pasos=N*N; //Vamos a dar N² pasos montecarlo, o sea N⁴ iteraciones
 
@@ -39,27 +39,27 @@ int main(void)
  
     //Debemos empezar dando la configuracion inicial de espines, vamos a empezar con una configuracion aleatoria
 
-//    for(i=0;i<=(N+1);i++) //Esto es en caso de quere dar condiciones iniciales homogéneas
-//    {
-//        for(j=0;j<=N;j++) //Esto es menor igual porque definí un array de tamaño N+1 para poder implementar las condiciones periodicas estas de que s[N+1][j]=s[1][j]
-//        {
-//            s[i][j]=1; 
-//        }
-//    }
-
-   signo=1;
-    for(i=0;i<=(N+1);i++)
+    for(i=0;i<=(N+1);i++) //Esto es en caso de quere dar condiciones iniciales homogéneas
     {
-          for(j=0;j<=(N+1);j++)
+        for(j=0;j<=N;j++) //Esto es menor igual porque definí un array de tamaño N+1 para poder implementar las condiciones periodicas estas de que s[N+1][j]=s[1][j]
         {
-            signo=gsl_rng_uniform_int(tau,2); //Genera un aleatorio entre 0 y 1
-            
-            if(signo==0)
-            {
-                s[i][j]=-1;
-            }else s[i][j]=1;
-       }
+            s[i][j]=1; 
+        }
     }
+
+//   signo=1;
+//    for(i=0;i<=(N+1);i++)
+//    {
+//          for(j=0;j<=(N+1);j++)
+//        {
+//            signo=gsl_rng_uniform_int(tau,2); //Genera un aleatorio entre 0 y 1
+//            
+//            if(signo==0)
+//            {
+//                s[i][j]=-1;
+//            }else s[i][j]=1;
+//       }
+//    }
 
     //Ahora vamos a escribir en fichero la posición inicial
     for(j=1;j<=N;j++)
