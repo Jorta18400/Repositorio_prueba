@@ -3,9 +3,14 @@
 #include<math.h>
 #include"gsl_rng.h"
 
-#define N 20 //Tamaño red
+#define N 40 //Tamaño red
 #define mu 1 //Nº de patrones almacenados
 
+//Declaro variables globales para que no suceda un stack overflow
+int patrones[mu][N][N]; //Matriz 3d de mu*N*N para almacenar patrones
+int s[N][N];  //Esta será la matriz de espines que compone la red
+double solap[mu]; //Este es el vector que almacena los solapamientos para cada patrón
+double w[N][N][N][N], a[mu], theta[N][N];
 
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
 
@@ -16,15 +21,11 @@ int main(void)
     extern gsl_rng *tau;
     int i,j,k,l,n,m; //Contadores, mu es el número de patrones almacenados
     double T,E,p; //Temperatura, energía y el parámetro p
-    int patrones[mu][N][N]; //Matriz 3d de mu*N*N para almacenar patrones
-    int s[N][N];  //Esta será la matriz de espines que compone la red
-    double solap[mu]; //Este es el vector que almacena los solapamientos para cada patrón
     int pasos; //Número de pasos montecarlo que vamos a dar
-    double w[N][N][N][N], a[mu], theta[N][N];
     double ji; //Es un número aleatorio
     FILE *finicial, *fred, *fsolap; //Ficheros inicial de donde sacamos el patron y red generada
 
-    finicial=fopen("Xd(20x20).txt", "r"); //Abro ficheros
+    finicial=fopen("Juan(40x40).txt", "r"); //Abro ficheros
     fred=fopen("Red.txt","w");
     fsolap=fopen("Solapamiento.txt","w");
 
@@ -32,7 +33,7 @@ int main(void)
     T=0.0001; 
     pasos=N*N; //Vamos a dar N² pasos montecarlo, o sea N⁴ iteraciones
 
-    int semilla=69420;
+    int semilla=6942069;
     tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
     gsl_rng_set(tau,semilla);
  
@@ -44,13 +45,25 @@ int main(void)
             s[i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
         }
     }
+    //Ahora vamos a escribir en fichero la posición inicial
+    for(j=0;j<N;j++)
+    {
+        for(l=0;l<N;l++)
+        {
+            if(l==(N-1)) //Si es el último elemento de la fila hacemos salto de línea
+            {
+                fprintf(fred, "%i\n", s[j][l]);
+            }else fprintf(fred, "%i,", s[j][l]);
+        }
+    }
+    fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red
     
     //Ahora vamos a leer los patrones que queremos guardar
     for(i=0;i<N;i++)
     {
         for(j=0;j<N;j++)
         {
-            fscanf( finicial, "%i", &(patrones[0][i][j]) );
+            fscanf( finicial, "%i,", &patrones[0][i][j] );
         }
     }
 
@@ -100,7 +113,7 @@ int main(void)
                 if(l==(N-1)) //Si es el último elemento de la fila hacemos salto de línea
                 {
                     fprintf(fred, "%i\n", s[j][l]);
-                }else fprintf(fred, "%i,\t", s[j][l]);
+                }else fprintf(fred, "%i,", s[j][l]);
             }
         }
         fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red
@@ -133,33 +146,28 @@ double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N]
                 a[k]+=patrones[k][i][j];
             }
         }
-        a[k]=1/(N*N)*a[k];
+        a[k]=1/(1.0*N*N)*a[k];
     }
 
     for(h=0;h<mu;h++) //Calculamos la función de pesos sinápticos w
     {
-        for(i=0;i<N;i++)
+        for(k=0;k<N;k++)
         {
-            for(j=0;j<N;j++)
+            for(l=0;l<N;l++)
             {
-                for(k=0;k<N;k++)
+                if(n==k && m==l)
                 {
-                    for(l=0;l<N;l++)
-                    {
-                        if(i==k && j==l)
-                        {
-                            w[i][j][k][l]=0;
-                        }else
-                        {
-                            w[i][j][k][l]=(patrones[h][i][j]-a[h]) * (patrones[h][k][l]-a[h]);
-                        }
-                    }
+                    w[n][m][k][l]=0;
+                }else
+                {
+                    w[n][m][k][l]=(patrones[h][n][m]-a[h]) * (patrones[h][k][l]-a[h]);
+                    w[n][m][k][l] = (w[n][m][k][l])/(1.0*N*N);
                 }
             }
         }
-        w[i][j][k][l] = w[i][j][k][l]/(1.0*N*N);
     }
     
+    theta[n][m]=0.0; //Inicializo
     for(k=0;k<N;k++) //Vamos ahora con el cálculo del umbral de disparo
     {
         for(l=0;l<N;l++)
