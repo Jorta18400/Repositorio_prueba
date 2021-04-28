@@ -15,6 +15,7 @@ double w[N][N][N][N], a[mu], theta[N][N];
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
 
 double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N][N][N], double a[mu], double theta[N][N]); //Función que calcula la \Delta E
+double solapamiento (int s[N][N], int patrones[mu][N][N], double a[mu]); //Función que calcula el solapamiento en un instante dado
 
 int main(void)
 {
@@ -97,13 +98,16 @@ int main(void)
 
             if(ji<p)
             {
-                if(s[n][m]==1) //Cambiamos el valor del espín si se cumple la condicion de que ji<p
-                {
-                    s[n][m]=0;
-                }else s[n][m]=1;
+                s[n][m]=1-s[n][m]; //cambiamos el valor de la neurona si se cumple la condicion
             }
         }
         //Calculemos el solapamiento para la red que queda tras este paso montecarlo
+        for(i=0;i<mu;i++)
+        {
+            solap[i]=solapamiento(s,patrones,a);
+        }
+        //Y lo escribimos en fichero
+        fprintf(fsolap, "%lf\n", solap[0]);
         
         //Ahora vamos a escribir en fichero la posición actual
         for(j=0;j<N;j++)
@@ -146,24 +150,25 @@ double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N]
                 a[k]+=patrones[k][i][j];
             }
         }
-        a[k]=1/(1.0*N*N)*a[k];
+        a[k]*=1/(1.0*N*N);
     }
 
-    for(h=0;h<mu;h++) //Calculamos la función de pesos sinápticos w
+    //Calculamos la función de pesos sinápticos w
+    for(k=0;k<N;k++)
     {
-        for(k=0;k<N;k++)
+        for(l=0;l<N;l++)
         {
-            for(l=0;l<N;l++)
+            for(h=0;h<mu;h++)
             {
                 if(n==k && m==l)
                 {
-                    w[n][m][k][l]=0;
+                    w[n][m][k][l] = 0;
                 }else
                 {
-                    w[n][m][k][l]=(patrones[h][n][m]-a[h]) * (patrones[h][k][l]-a[h]);
+                    w[n][m][k][l] = (patrones[h][n][m]-a[h]) * (patrones[h][k][l]-a[h]);
                     w[n][m][k][l] = (w[n][m][k][l])/(1.0*N*N);
                 }
-            }
+            }    
         }
     }
     
@@ -178,16 +183,35 @@ double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N]
     theta[n][m]=0.5*theta[n][m];
 
     //Calculemos la diferencia de energia entre el estado en el que estamos y al que sería posible que pasáramos
+    dE=0.0; 
         for(i=0;i<N;i++)
         {
             for(j=0;j<N;j++)
             {
                 if(s[n][m]==0) //El signo cambia en función de cual fuese el estado incial de s[n][m] 
                 {
-                    dE=theta[n][m]*(-1)+(1)*0.5*(w[n][m][i][j]*s[i][j]);
-                }else dE=theta[n][m]*(1)+(-1)*0.5*(w[n][m][i][j]*s[i][j]);               
+                    dE+=theta[n][m]*(-1)+(-1)*0.5*(w[n][m][i][j]*s[i][j]);
+                }else dE+=theta[n][m]*(1)+(1)*0.5*(w[n][m][i][j]*s[i][j]);               
             }
         }
     
     return dE;
+}
+
+double solapamiento (int s[N][N], int patrones[mu][N][N], double a[mu])
+{
+    double solapa; //El solapamiento
+    int i,j; //Contadores
+
+    solapa=0.0; //inicializo
+    for(i=0;i<N;i++)
+    {
+        for(j=0;j<N;j++)
+        {
+            solapa += (patrones[0][i][j]-a[0])*(s[i][j]-a[0]);
+        }
+    }
+    solapa *= 1.0/(N*N*a[0]*(1-a[0]));
+
+    return solapa;
 }
