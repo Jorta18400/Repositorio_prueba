@@ -1,7 +1,7 @@
 #include<stdlib.h>
 #include<stdio.h>
 #include<math.h>
-#include<complex.h>
+#include"complex.h"
 #include"gsl_rng.h"
 
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
@@ -41,8 +41,8 @@ int main (void)
         Phi[j][0]=Cgauss(k0*j,exp(-8*pow(4*j-N,2)/(N*N)));
     }
 
-    Phi[0][0]=0.0;
-    Phi[N][0]=0.0; //Condiciones de contorno
+    Phi[0][0]=Complex(0.0,0.0);
+    Phi[N][0]=Complex(0.0,0.0); //Condiciones de contorno
 
     //Nuestro siguiente objetivo es calcualr alpha, para ello tenemos que calcular gamma invertido, para lo que necesitamos los A0
     for(j=0;j<N;j++)
@@ -50,14 +50,14 @@ int main (void)
         A0[j]=Complex(-2.0-V[j],2.0/s);
     }
 
-    alpha[N-2]=0.0; //alpha inicial, se toma 0
+    alpha[N-2]=Complex(0.0,0.0); //alpha inicial, se toma 0
     for(j=N-2;j>0;j--)
     {
         gammainverso[j]=Cadd(A0[j],alpha[j]);
         alpha[j-1]=Cmul( Complex(-1.0,0.0),Cdiv(Complex(1.0,0.0),gammainverso[j]) );
     }
 
-    
+
     
 
 
