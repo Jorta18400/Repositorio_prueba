@@ -7,25 +7,36 @@
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
 
 #define N 1000 //Esto define la longitud del pozo de potencial
-#define nmax 1000 //Define el maximo de tiempo
+#define nmax 100 //Define el maximo de tiempo
 #define nciclos 100 //Número de ciclos 
 #define lambda 0.3
 #define h 0.5 //Paso espacial
 #define PI 3.141592
 
+int n; //Contador de tiempo
+int j; //Contador
+double V[N]; //potencial
+fcomplex Phi[N][nmax], Xi[N][nmax]; //Funcion de onda y la Xi de los apuntes
+fcomplex alpha[N], beta[N][nmax];
+fcomplex A0[N], gammainverso[N]; //Parámetros de los apuntes
+
 int main (void)
 {
     extern gsl_rng *tau;
-    double k0, s, V[N]; //parámetros y el potencial
-    fcomplex Phi[N][nmax], Xi[N][nmax]; //Funcion de onda y la Xi de los apuntes
-    int n; //Contador de tiempo
-    int i,j; //Contadores
-    fcomplex alpha[N], beta[N][nmax];
-    fcomplex A0[N], b[N][n], gammainverso[j],gamma[j]; //Parámetros de los apuntes
+    int imprimir; //Decide si se escribe en el fichero o no
+    double k0, s; //parámetros 
+    double norma; //Norma de la funcion de onda
+    fcomplex im; //La unidad imaginaria
+    fcomplex aux; //Variable auxiliar compleja
+    fcomplex b[N][nmax], gamma[N];
+    FILE *fnorma; //ficheros
+
+    fnorma=fopen("Norma.txt", "w");
 
     //Vamos a generar los parámetros iniciales
     k0=(2*PI*nciclos)/N;
     s=1.0/(4*k0);
+    im=Complex(0.0,1.0);
     
     for(j=0;j<N;j+h) //Este es el potencial
     {
@@ -36,13 +47,15 @@ int main (void)
     }
 
     //Toca definir la función de onda inicial ahora 
-    for(j=0;j<N;j+h)
+    for(j=1;j<(N-1);j+h)
     {
         Phi[j][0]=Cgauss(k0*j,exp(-8*pow(4*j-N,2)/(N*N)));
     }
 
     Phi[0][0]=Complex(0.0,0.0);
-    Phi[N][0]=Complex(0.0,0.0); //Condiciones de contorno
+    Phi[N-1][0]=Complex(0.0,0.0); //Condiciones de contorno
+
+    fprintf(fnorma, "%lf\n", norma);
 
     //Nuestro siguiente objetivo es calcualr alpha, para ello tenemos que calcular gamma invertido, para lo que necesitamos los A0
     for(j=0;j<N;j+h)
@@ -58,14 +71,18 @@ int main (void)
         alpha[j-1]=Cmul( Complex(-1.0,0.0),gamma[j] );
     }
 
-    for(n=0;n<nmax;n++) //bucle principal
+    imprimir=0;
+    for(n=1;n<nmax;n++) //bucle principal, empiezo en 1 porque lo 0 lo calcule antes ya 
     {
+        imprimir++;
+
         for(j=0;j<N;j+h) //Sacamos b, que necesitamos para calcular beta
         {
-            b[j][n]=Complex( 0.0 , (RCmul( 1/s, RCmul(4.0,Phi[j][n]) ) ) );
+            aux=RCmul( 4.0/s , Phi[j][n] );
+            b[j][n]=Cmul( aux , im);
         }
 
-        beta[N-2][n]=0;
+        beta[N-2][n]=Complex(0.0,0.0);
         for(j=N-3;j>0;j--) //Calculamos beta 
         {
             beta[j][n]=Cmul( gamma[j] , Csub( b[j][n] , beta[j+1][n] ) );
@@ -80,25 +97,32 @@ int main (void)
         }
 
         //Calculamos ahora la Phi del paso temporal siguiente
-        for(j=0;j<N;j+h)
+        for(j=1;j<(N-1);j+h)
         {
             Phi[j][n+1]= Csub( Xi[j][n] , Phi[j][n]);
         }
+        Phi[0][n]=Complex(0.0,0.0);
+        Phi[N-1][n]=Complex(0.0,0.0); //Condiciones de contorno
 
-        //Siguiente paso, comprobar que se conserva la norma
+        //Siguiente paso, comprobar que se conserva la norma en cada paso
+        norma=0.0;
+        for(j=1;j<(N-1);j++) //De uno a N-2 porque en 0 y N-1 estan las condiciones de contorno
+        {
+            norma += pow(Cabs(Phi[j][n]),2); 
+        }
+
+        if(imprimir%10==0)
+        {
+            fprintf(fnorma, "%lf\n", norma);
+        }
+
     }
-
-    
-
-
-
-
-
-
     
     int semilla=6942069; //jaja funny
     tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
     gsl_rng_set(tau,semilla);
+
+    fclose(fnorma);
 
     return 0;
 }
