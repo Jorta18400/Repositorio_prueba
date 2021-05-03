@@ -45,12 +45,12 @@ import io
 
 # Parámetros
 # ========================================
-file_in = "schrodinger_data.dat" # Nombre del fichero de datos
+file_in = "Onda.txt" # Nombre del fichero de datos
 file_out = "schrodinger" # Nombre del fichero de salida (sin extensión)
 interval = 100 # Tiempo entre fotogramas en milisegundos
 save_to_file = True # False: muestra la animación por pantalla,
                      # True: la guarda en un fichero
-dpi = 150 # Calidad del vídeo de salida (dots per inch)
+dpi = 450 # Calidad del vídeo de salida (dots per inch)
 
 
 # Lectura del fichero de datos
