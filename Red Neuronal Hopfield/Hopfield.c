@@ -69,7 +69,7 @@ int main(void)
         }
     }
 
-        //COMPROBACION DE QUE SE LEE BIEN EL FICHERO
+    //COMPROBACION DE QUE SE LEE BIEN EL FICHERO
     for(j=0;j<N;j++)
     {
         for(l=0;l<N;l++)
@@ -82,7 +82,7 @@ int main(void)
     }
     fprintf(fprueba, "\n"); //Salto de línea para distinguir entre cada red
 
-    for(k=0;k<100;k++) //En este for se hace el core del código, se van buscando las posiciones aleatorias y viendo si se cambia su signo o no
+    for(k=0;k<40;k++) //En este for se hace el core del código, se van buscando las posiciones aleatorias y viendo si se cambia su signo o no
     {
         for(i=0;i<pasos;i++)
         {
@@ -159,37 +159,86 @@ double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N]
                 a[k]+=patrones[k][i][j];
             }
         }
-        a[k]*=1/(1.0*N*N);
+        a[k]*=1.0/(N*N);
     }
 
     //Calculamos la función de pesos sinápticos w
-    for(k=0;k<N;k++)
-    {
-        for(l=0;l<N;l++)
-        {
-            for(h=0;h<mu;h++)
-            {
-                if(n==k && m==l)
-                {
-                    w[n][m][k][l] = 0;
-                }else
-                {
-                    w[n][m][k][l] = (patrones[h][n][m]-a[h]) * (patrones[h][k][l]-a[h]);
-                    w[n][m][k][l] = (w[n][m][k][l])/(1.0*N*N);
-                }
-            }    
-        }
-    }
+//    for(k=0;k<N;k++)
+//    {
+//        for(l=0;l<N;l++)
+//        {
+//            for(h=0;h<mu;h++)
+//            {
+//                if(n==k && m==l)
+//                {
+//                    w[n][m][k][l] = 0.0;
+//                }else
+//                {
+//                    w[n][m][k][l] = (patrones[h][n][m]-a[h]) * (patrones[h][k][l]-a[h]);
+//                    w[n][m][k][l] = (w[n][m][k][l])/(1.0*N*N);
+//                }
+//            }    
+//        }
+//    }
     
-    theta[n][m]=0.0; //Inicializo
-    for(k=0;k<N;k++) //Vamos ahora con el cálculo del umbral de disparo
+    for(i=0;i<N;i++)
     {
-        for(l=0;l<N;l++)
+        for(j=0;j<N;j++)
         {
-            theta[n][m] += w[n][m][k][l];
+            for(k=0;k<N;k++)
+            {
+                for(l=0;l<N;l++)
+                {
+                    for(h=0;h<mu;h++)
+                    {
+                        if(i==k && j==l)
+                        {
+                            w[i][j][k][l]=0.0;
+                        }else
+                        {
+                            w[i][j][k][l]=(patrones[h][i][j]-a[h])*(patrones[h][k][l]-a[h]);
+                            w[i][j][k][l]/=(1.0*N*N);
+                        }
+                    }
+                }
+            }
         }
     }
-    theta[n][m]=0.5*theta[n][m];
+
+    for(i=0;i<N;i++)
+    {
+        for(j=0;j<N;j++)
+        {
+            theta[i][j]=0.0;
+        }
+    }
+    for(i=0;i<N;i++)
+    {
+        for(j=0;j<N;j++)
+        {
+            for(k=0;k<N;k++)
+            {
+                for(l=0;l<N;l++)
+                {
+                    theta[i][j]+=w[i][j][n][m];
+                }
+            }
+            theta[i][j]*=0.5;
+        }
+    }
+
+
+//    theta[n][m]=0.0; //Inicializo
+//    for(k=0;k<N;k++) //Vamos ahora con el cálculo del umbral de disparo
+//    {
+//        for(l=0;l<N;l++)
+//        {
+//            theta[n][m] += w[n][m][k][l];
+//        }
+//    }
+//    theta[n][m]=0.5*theta[n][m];
+
+
 
     for(i=0;i<N;i++)
     {
@@ -198,7 +247,7 @@ double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N]
             if( (i==n) && (j==m))
             {
                 sprima[i][j]=1-s[i][j];
-            }else sprima[i][j]=1-s[i][j];
+            }else sprima[i][j]=s[i][j];
         }
     }
 
@@ -224,7 +273,7 @@ double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N]
             {
                 for(l=0;l<N;l++)
                 {
-                    dE+= -0.5*w[i][j][k][l]*s[i][j]*s[k][l]+theta[i][j]*s[i][j]-0.5*w[i][j][k][l]*sprima[i][j]*sprima[k][l]+theta[i][j]*sprima[i][j];
+                    dE+= +0.5*w[i][j][k][l]*s[i][j]*s[k][l]-theta[i][j]*s[i][j]-0.5*w[i][j][k][l]*sprima[i][j]*sprima[k][l]+theta[i][j]*sprima[i][j];
                 }
             }
         }
