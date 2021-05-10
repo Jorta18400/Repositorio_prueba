@@ -3,7 +3,7 @@
 #include<math.h>
 #include"gsl_rng.h"
 
-#define N 20 //Tamaño red
+#define N 40 //Tamaño red
 #define mu 1 //Nº de patrones almacenados
 
 //Declaro variables globales para que no suceda un stack overflow
@@ -26,7 +26,7 @@ int main(void)
     double ji; //Es un número aleatorio
     FILE *finicial, *fred, *fsolap, *fprueba; //Ficheros inicial de donde sacamos el patron y red generada
 
-    finicial=fopen("Xd(20x20).txt","r"); //Abro ficheros
+    finicial=fopen("Juan(40x40).txt","r"); //Abro ficheros
     fred=fopen("Red.txt","w");
     fsolap=fopen("Solapamiento.txt","w");
     fprueba=fopen("Prueba.txt","w");
@@ -82,7 +82,7 @@ int main(void)
     }
     fprintf(fprueba, "\n"); //Salto de línea para distinguir entre cada red
 
-    for(k=0;k<40;k++) //En este for se hace el core del código, se van buscando las posiciones aleatorias y viendo si se cambia su signo o no
+    for(k=0;k<15;k++) //En este for se hace el core del código, se van buscando las posiciones aleatorias y viendo si se cambia su signo o no
     {
         for(i=0;i<pasos;i++)
         {
@@ -205,38 +205,16 @@ double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N]
         }
     }
 
-    for(i=0;i<N;i++)
+
+    theta[n][m]=0.0; //Inicializo
+    for(k=0;k<N;k++) //Vamos ahora con el cálculo del umbral de disparo
     {
-        for(j=0;j<N;j++)
+        for(l=0;l<N;l++)
         {
-            theta[i][j]=0.0;
+            theta[n][m] += w[n][m][k][l];
         }
     }
-    for(i=0;i<N;i++)
-    {
-        for(j=0;j<N;j++)
-        {
-            for(k=0;k<N;k++)
-            {
-                for(l=0;l<N;l++)
-                {
-                    theta[i][j]+=w[i][j][n][m];
-                }
-            }
-            theta[i][j]*=0.5;
-        }
-    }
-
-
-//    theta[n][m]=0.0; //Inicializo
-//    for(k=0;k<N;k++) //Vamos ahora con el cálculo del umbral de disparo
-//    {
-//        for(l=0;l<N;l++)
-//        {
-//            theta[n][m] += w[n][m][k][l];
-//        }
-//    }
-//    theta[n][m]=0.5*theta[n][m];
+    theta[n][m]=0.5*theta[n][m];
 
 
 
@@ -273,11 +251,12 @@ double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N]
             {
                 for(l=0;l<N;l++)
                 {
-                    dE+= +0.5*w[i][j][k][l]*s[i][j]*s[k][l]-theta[i][j]*s[i][j]-0.5*w[i][j][k][l]*sprima[i][j]*sprima[k][l]+theta[i][j]*sprima[i][j];
+                    dE+=w[i][j][k][l]* ( s[i][j]*s[k][l] - sprima[i][j]*sprima[k][l] );
                 }
             }
         }
     }
+    dE=dE*0.5+theta[n][m]*(sprima[n][m]-s[n][m]);
   
     return dE;
 }
@@ -298,4 +277,4 @@ double solapamiento (int s[N][N], int patrones[mu][N][N], double a[mu])
     solapa *= 1.0/(N*N*a[0]*(1-a[0]));
 
     return solapa;
-}
+} 
