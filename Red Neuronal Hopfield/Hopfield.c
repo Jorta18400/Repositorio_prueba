@@ -3,7 +3,7 @@
 #include<math.h>
 #include"gsl_rng.h"
 
-#define N 40 //Tamaño red
+#define N 20 //Tamaño red
 #define mu 1 //Nº de patrones almacenados
 
 //Declaro variables globales para que no suceda un stack overflow
@@ -24,12 +24,11 @@ int main(void)
     double T,E,p; //Temperatura, energía y el parámetro p
     int pasos; //Número de pasos montecarlo que vamos a dar
     double ji; //Es un número aleatorio
-    FILE *finicial, *fred, *fsolap, *fprueba; //Ficheros inicial de donde sacamos el patron y red generada
+    FILE *finicial, *fred, *fsolap; //Ficheros inicial de donde sacamos el patron y red generada
 
-    finicial=fopen("Juan(40x40).txt","r"); //Abro ficheros
+    finicial=fopen("Xd(20x20).txt","r"); //Abro ficheros
     fred=fopen("Red.txt","w");
     fsolap=fopen("Solapamiento.txt","w");
-    fprueba=fopen("Prueba.txt","w");
 
     //Damos valores a las variables
     T=0.0001; 
@@ -39,14 +38,37 @@ int main(void)
     tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
     gsl_rng_set(tau,semilla);
  
-    //Debemos empezar dando la configuracion inicial de espines, vamos a empezar con una configuracion aleatoria
+
+    //Empezamo leyendo los patrones que queremos guardar
     for(i=0;i<N;i++)
     {
-        for(j=0;j<N;j++) //Esto es menor igual porque definí un array de tamaño N+1 para poder implementar las condiciones periodicas estas de que s[N+1][j]=s[1][j]
+        for(j=0;j<N;j++)
         {
-            s[i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
+            fscanf(finicial,"%i,",&patrones[0][i][j]);
         }
     }
+//    //Damos la configuracion inicial de espines, vamos a empezar con una configuracion aleatoria
+//    for(i=0;i<N;i++)
+//    {
+//        for(j=0;j<N;j++) //Esto es menor igual porque definí un array de tamaño N+1 para poder implementar las condiciones periodicas estas de que s[N+1][j]=s[1][j]
+//        {
+//            s[i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
+//        }
+//    }
+    
+    //Damos la configuracion inicial de espines, vamos a empezar con el patron deformado
+    for(i=0;i<N;i++)
+    {
+        for(j=0;j<N;j++)
+        {
+            k=gsl_rng_uniform_int(tau,3); //Genera aleatorios entre 0 y 2
+            if(k==1)
+            {
+                s[i][j]=1-patrones[0][i][j];
+            }else s[i][j]=patrones[0][i][j];
+        }
+    }
+
     //Ahora vamos a escribir en fichero la posición inicial
     for(j=0;j<N;j++)
     {
@@ -59,28 +81,6 @@ int main(void)
         }
     }
     fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red
-    
-    //Ahora vamos a leer los patrones que queremos guardar
-    for(i=0;i<N;i++)
-    {
-        for(j=0;j<N;j++)
-        {
-            fscanf(finicial,"%i,",&patrones[0][i][j]);
-        }
-    }
-
-    //COMPROBACION DE QUE SE LEE BIEN EL FICHERO
-    for(j=0;j<N;j++)
-    {
-        for(l=0;l<N;l++)
-        {
-            if(l==(N-1)) //Si es el último elemento de la fila hacemos salto de línea
-            {
-                fprintf(fprueba , "%i\n", patrones[0][j][l]);
-            }else fprintf(fprueba, "%i,", patrones[0][j][l]);
-        }
-    }
-    fprintf(fprueba, "\n"); //Salto de línea para distinguir entre cada red
 
     for(k=0;k<15;k++) //En este for se hace el core del código, se van buscando las posiciones aleatorias y viendo si se cambia su signo o no
     {
@@ -134,7 +134,6 @@ int main(void)
     fclose(fred);
     fclose(finicial);
     fclose(fsolap);
-    fclose(fprueba);
 
     return 0;
 }
@@ -237,7 +236,7 @@ double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N]
 //           {
 //                if(s[n][m]==0) //El signo cambia en función de cual fuese el estado incial de s[n][m] 
 //                {
-//                    dE+= -1*(-theta[n][m]+w[n][m][i][j]*(s[i][j]+0.5*(sprima[i][j]-s[i][j]) ) );
+//                    dE+= theta[n][m]-w[n][m][i][j]*(s[i][j]+0.5*(sprima[i][j]-s[i][j]) );
 //                }else dE+= -theta[n][m]+w[n][m][i][j]*(s[i][j]+0.5*(sprima[i][j]-s[i][j]) );               
 //            }
 //        }
