@@ -31,7 +31,7 @@ int main(void)
     fsolap=fopen("Solapamiento.txt","w");
 
     //Damos valores a las variables
-    T=0.0001; 
+    T=0.025; 
     pasos=N*N; //Vamos a dar N² pasos montecarlo, o sea N⁴ iteraciones
 
     int semilla=6942069;
