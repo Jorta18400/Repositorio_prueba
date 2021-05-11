@@ -49,26 +49,26 @@ int main(void)
     }
     
     //Damos la configuracion inicial de espines, vamos a empezar con una configuracion aleatoria
-//   for(i=0;i<N;i++)
-//    {
-//        for(j=0;j<N;j++)
-//        {
-//            s[i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
-//        }
-//    }
-    
-    //Damos la configuracion inicial de espines, vamos a empezar con el patron deformado
-    for(i=0;i<N;i++)
+   for(i=0;i<N;i++)
     {
         for(j=0;j<N;j++)
         {
-            k=gsl_rng_uniform_int(tau,3); //Genera aleatorios entre 0 y 2
-            if(k==1) //Uso k como auxiliar, no como contador
-            {
-                s[i][j]=1-patrones[0][i][j];
-            }else s[i][j]=patrones[0][i][j];
+            s[i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
         }
     }
+    
+    //Damos la configuracion inicial de espines, vamos a empezar con el patron deformado
+//    for(i=0;i<N;i++)
+//    {
+//        for(j=0;j<N;j++)
+//        {
+//            k=gsl_rng_uniform_int(tau,3); //Genera aleatorios entre 0 y 2
+//            if(k==1) //Uso k como auxiliar, no como contador
+//            {
+//                s[i][j]=1-patrones[0][i][j];
+//            }else s[i][j]=patrones[0][i][j];
+//        }
+//    }
 
     //Ahora vamos a escribir en fichero la posición inicial
     for(j=0;j<N;j++)
@@ -83,7 +83,7 @@ int main(void)
     }
     fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red
 
-    for(k=0;k<20;k++) //En este for se hace el core del código, se van buscando las posiciones aleatorias y viendo si se cambia su signo o no
+    for(k=0;k<30;k++) //En este for se hace el core del código, se van buscando las posiciones aleatorias y viendo si se cambia su signo o no
     {
         for(i=0;i<pasos;i++)
         {
