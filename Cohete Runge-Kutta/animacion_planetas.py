@@ -48,25 +48,25 @@ import numpy as np
 # Parámetros
 # ========================================
 file_in = "Posiciones.txt" # Nombre del fichero de datos
-file_out = "planetas_geocentricos" # Nombre del fichero de salida (sin extensión)
+file_out = "Misión-lunar" # Nombre del fichero de salida (sin extensión)
 
 # Límites de los ejes X e Y
-x_min = -10
-x_max = 10
-y_min = -35 
-y_max = 35
+x_min = -1.1
+x_max = 1.1
+y_min = -1.1
+y_max = 1.1
 
-interval = 5 # Tiempo entre fotogramas en milisegundos
+interval = 10 # Tiempo entre fotogramas en milisegundos
 show_trail = True # Muestra la "estela" del planeta
-trail_width = 0.1 # Ancho de la estela
-save_to_file = True # False: muestra la animación por pantalla,
+trail_width = 0.25 # Ancho de la estela
+save_to_file = False # False: muestra la animación por pantalla,
                      # True: la guarda en un fichero
 dpi = 300 # Calidad del vídeo de salida (dots per inch)
 
 # Radio del planeta, en las mismas unidades que la posición
 # Puede ser un número (el radio de todos los planetas) o una lista con
 # el radio de cada uno
-planet_radius = [0.2, 0.07, 0.07, 0.07, 0.07, 0.15, 0.15, 0.15, 0.15, 0.15] 
+planet_radius = [0.05, 0.0095, 0.025] 
 #planet_radius = [0.5, 0.7, 1.1]
 
 
