@@ -15,35 +15,140 @@
 #define G 6.67e-11 //Cte de gravitación universal
 #define PI 3.14159265 //nº pi
 
+
+double Sacarprima(double r, double phi, double t);
+double funcion0(double pr); //Corresponde a sacar rpunto
+double funcion1(double pphi, double r); //Corresponde a sacar phipunto
+double funcion2(double r, double rprima, double mu, double delta, double pphi, double phi, double t); //Corresponde a sacar prpunto
+double funcion3(double r, double rprima, double mu, double delta, double phi, double t); //Corresponde a sacar phipunto
 int main(void)
 {
     double h, t, tmax; //Paso temporal, tiempo actual y tiempo tope
-    double r, rpunto, phi, phipunto, pr, prpunto, pphi, pphipunto; //Coordenadas
-    double theta; //Ángulo de posición inicial del cohete sobre la Tierra
+    double r, phi, pr, pphi; //Coordenadas
+    double theta; //Ángulo de velocidad inicial del cohete sobre la Tierra
     double rprima, delta, mu; //parámetros
     double k1[N], k2[N], k3[N], k4[N]; //Parámetros usados en Runge-Kutta
-    int i; //Contador
+    int imprimir; //Decide si se escribe en fichero o no
     FILE *fposiciones;
 
     fposiciones=fopen("Posiciones.txt", "w");
 
     //Incialicemos los parámetros
-    h=0.01
-    tmax=1000.0;
+    h=60.0; //Unos 30 segundos de paso temporal
+    tmax=864000.0; //Tiempo máximo en segundos, unos 10 dias
     t=0.0;
     delta=G*MT/(1.0*dtL*dtL*dtL);
     mu=ML/(MT*1.0);
     //Condiciones iniciales de la nave
-    phi=PI/4; //Por ejemplo haremos que la nave salga desde PI/4 
+    theta=7*PI/36.0;
+    phi=PI/4.0; 
     r=RT/dtL; //Esto es así porque estamos reescalando las magnitudes
-    pr=0.0;
-    pphi=(72.72e-6)*RT*RT/(dtL*dtL*1.0); //El número ese es la velocidad de rotación de la Tierra en rad/s, ya que esa será la phipunto de la nave en t=0
+    pr=11190*cos(theta-phi)/dtL; //11190 es la velocidad de escape en m/s
+    pphi=11190*r*sin(theta-phi)/dtL;
 
-    
+    //Metamos en el fichero las posiciones iniciales de la Tierra, la nave y la Luna
+    fprintf(fposiciones, "%lf,\t%lf\n%lf,\t%lf\n%lf,\t%lf\n\n", 0.0, 0.0, r*cos(phi), r*sin(phi), cos(w*t), sin(w*t)); //Tengo que poner las coordenadas en cartesianas porque es lo que lee el script 
+     
+    //Vamos a empezar un bucle donde vamos a ir calculando todo para cada t
+    imprimir=0;
+    while(t<tmax)
+    {
+        rprima=Sacarprima(r,phi,t); //Empezamos por sacar rprima que nos hara falta en los cálculos
 
+        //Sacamos los k1
+        k1[0]=h*funcion0(pr);
+        k1[1]=h*funcion1(pphi,r);
+        k1[2]=h*funcion2(r,rprima,mu,delta,pphi,phi,t);
+        k1[3]=h*funcion3(r,rprima,mu,delta,phi,t);
+
+        //Ahora los k2
+        k2[0]=h*funcion0(pr+k1[2]/2.0);
+        k2[1]=h*funcion1( pphi+k1[3]/2.0, r+k1[0]/2.0);
+        //Debemos sacar rprima modificada para poder sacar el resto de k2
+        rprima=Sacarprima( r+k1[0]/2.0, phi+k1[1]/2.0, t+h/2.0);
+        k2[2]=h*funcion2(r+k1[0]/2.0, rprima, mu, delta, pphi+k1[3]/2.0, phi+k1[1]/2.0, t+h/2.0);
+        k2[3]=h*funcion3(r+k1[0]/2.0, rprima, mu, delta, phi+k1[1]/2.0, t+h/2.0);
+
+        //Ahora los k3, muy parecido a k2
+        k3[0]=h*funcion0(pr+k2[2]/2.0);
+        k3[1]=h*funcion1( pphi+k2[3]/2.0, r+k2[0]/2.0);
+        //Debemos sacar rprima modificada para poder sacar el resto de k3
+        rprima=Sacarprima( r+k2[0]/2.0, phi+k2[1]/2.0, t+h/2.0);
+        k3[2]=h*funcion2(r+k2[0]/2.0, rprima, mu, delta, pphi+k2[3]/2.0, phi+k2[1]/2.0, t+h/2.0);
+        k3[3]=h*funcion3(r+k2[0]/2.0, rprima, mu, delta, phi+k2[1]/2.0, t+h/2.0);
+
+        //Por último los k4
+        k4[0]=h*funcion0(pr+k3[2]);
+        k4[1]=h*funcion1( pphi+k3[3], r+k3[0]);
+        //Igual que antes sacamos la nueva rprima
+        rprima=Sacarprima( r+k3[0], phi+k3[1], t+h);
+        k4[2]=h*funcion2( r+k3[0], rprima, mu, delta, pphi+k3[3], phi+k3[1], t+h);
+        k4[3]=h*funcion3( r+k3[0], rprima, mu, delta, phi+k3[1], t+h);
+
+        //Ahora podremos calcular las variables en t+h
+        r +=1/6.0*(k1[0]+2*k2[0]+2*k3[0]+k4[0]);
+        phi +=1/6.0*(k1[1]+2*k2[1]+2*k3[1]+k4[1]);
+        pr +=1/6.0*(k1[2]+2*k2[2]+2*k3[2]+k4[2]);
+        pphi +=1/6.0*(k1[3]+2*k2[3]+2*k3[3]+k4[3]);
+
+        imprimir++;
+        if(imprimir%5==0)
+        {
+            fprintf(fposiciones, "%lf,\t%lf\n%lf,\t%lf\n%lf,\t%lf\n\n", 0.0, 0.0, r*cos(phi), r*sin(phi), cos(w*t), sin(w*t));
+        }
+
+        t+=h;
+    }
 
 
     fclose(fposiciones);
 
     return 0;
 }  
+
+//Veamos las funciones
+
+double Sacarprima(double r, double phi, double t)
+{
+    double rprima;
+
+    rprima=sqrt(1+(r*r)-2*r*cos(phi-w*t));
+
+    return rprima;
+}
+
+double funcion0(double pr)
+{
+    double rpunto;
+
+    rpunto=pr;
+
+    return rpunto;
+}
+
+double funcion1(double pphi, double r)
+{
+    double phipunto;
+
+    phipunto=pphi/(r*r*1.0);
+
+    return phipunto;
+}
+
+double funcion2(double r, double rprima, double mu, double delta, double pphi, double phi, double t)
+{
+    double prpunto;
+
+    prpunto=(pphi*pphi)/(r*r*r*1.0)-delta*( 1/(r*r*1.0)+mu/(rprima*rprima*rprima)*(r-cos(phi-w*t)) );
+
+    return prpunto;
+}
+
+double funcion3(double r, double rprima, double mu, double delta, double phi, double t)
+{
+    double pphipunto;
+
+    pphipunto= -delta*mu*r/(rprima*rprima*rprima)*sin(phi-w*t);
+
+    return pphipunto;
+}
