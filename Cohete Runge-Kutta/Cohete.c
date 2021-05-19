@@ -21,6 +21,7 @@ double funcion0(double pr); //Corresponde a sacar rpunto
 double funcion1(double pphi, double r); //Corresponde a sacar phipunto
 double funcion2(double r, double rprima, double mu, double delta, double pphi, double phi, double t); //Corresponde a sacar prpunto
 double funcion3(double r, double rprima, double mu, double delta, double phi, double t); //Corresponde a sacar phipunto
+
 int main(void)
 {
     double h, t, tmax; //Paso temporal, tiempo actual y tiempo tope
@@ -29,12 +30,14 @@ int main(void)
     double rprima, delta, mu; //parámetros
     double k1[N], k2[N], k3[N], k4[N]; //Parámetros usados en Runge-Kutta
     int imprimir; //Decide si se escribe en fichero o no
-    FILE *fposiciones;
+    double Hprima; //cte de movimiento
+    FILE *fposiciones, *fenergia;
 
     fposiciones=fopen("Posiciones.txt", "w");
+    fenergia=fopen("Energia.txt", "w");
 
     //Incialicemos los parámetros
-    h=60.0; //Unos 30 segundos de paso temporal
+    h=0.8; //Unos 30 segundos de paso temporal
     tmax=864000.0; //Tiempo máximo en segundos, unos 10 dias
     t=0.0;
     delta=G*MT/(1.0*dtL*dtL*dtL);
@@ -48,7 +51,7 @@ int main(void)
 
     //Metamos en el fichero las posiciones iniciales de la Tierra, la nave y la Luna
     fprintf(fposiciones, "%lf,\t%lf\n%lf,\t%lf\n%lf,\t%lf\n\n", 0.0, 0.0, r*cos(phi), r*sin(phi), cos(w*t), sin(w*t)); //Tengo que poner las coordenadas en cartesianas porque es lo que lee el script 
-     
+    
     //Vamos a empezar un bucle donde vamos a ir calculando todo para cada t
     imprimir=0;
     while(t<tmax)
@@ -92,16 +95,28 @@ int main(void)
         pphi +=1/6.0*(k1[3]+2*k2[3]+2*k3[3]+k4[3]);
 
         imprimir++;
-        if(imprimir%5==0)
+        if(imprimir%100==0)
         {
             fprintf(fposiciones, "%lf,\t%lf\n%lf,\t%lf\n%lf,\t%lf\n\n", 0.0, 0.0, r*cos(phi), r*sin(phi), cos(w*t), sin(w*t));
         }
+
+        
+        //Vamos a calcular el H'
+        Hprima= (pr*pr*dtL*dtL)/2.0 + (pphi*pphi*pow(dtL,4))/(2.0*r*r) - (G*MT)/(r*dtL) - (G*ML)/(rprima*dtL) - w*pphi*dtL*dtL; 
+
+
+        if(imprimir%100==0)
+        {
+            fprintf(fenergia, "%lf\n", Hprima);
+        }
+
 
         t+=h;
     }
 
 
     fclose(fposiciones);
+    fclose(fenergia);
 
     return 0;
 }  
