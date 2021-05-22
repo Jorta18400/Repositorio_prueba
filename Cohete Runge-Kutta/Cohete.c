@@ -31,6 +31,7 @@ int main(void)
     double k1[N], k2[N], k3[N], k4[N]; //Parámetros usados en Runge-Kutta
     int imprimir; //Decide si se escribe en fichero o no
     double Hprima; //cte de movimiento
+    double rham, prham, pphiham, rL; //Variables para calcular el hamiltoniano
     FILE *fposiciones, *fenergia;
 
     fposiciones=fopen("Posiciones.txt", "w");
@@ -100,10 +101,15 @@ int main(void)
             fprintf(fposiciones, "%lf,\t%lf\n%lf,\t%lf\n%lf,\t%lf\n\n", 0.0, 0.0, r*cos(phi), r*sin(phi), cos(w*t), sin(w*t));
         }
 
-        
         //Vamos a calcular el H'
-        Hprima= (pr*pr*dtL*dtL)/2.0 + (pphi*pphi*pow(dtL,4))/(2.0*r*r) - (G*MT)/(r*dtL) - (G*ML)/(rprima*dtL) - w*pphi*dtL*dtL; 
+//        rham=dtL*r;
+//        prham=dtL*pr;
+//        pphiham=dtL*dtL*pphi;
+//        rL=sqrt(rham*rham+dtL*dtL-2*rham*cos(phi-w*t));
 
+//        Hprima= (prham*prham)/2.0 + (pphiham*pphiham)/(2.0*rham*rham) - (G*MT)/(rham) - (G*ML)/(rL) - w*pphiham; 
+
+        Hprima= (pr*pr*dtL*dtL)/2.0+(pphi*pphi*pow(dtL,4))/(2.0*r*r*dtL*dtL)-G*MT/(r*dtL)-G*ML/(rprima*dtL)-w*pphi*dtL*dtL;
 
         if(imprimir%100==0)
         {
