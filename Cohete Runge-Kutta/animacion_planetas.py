@@ -61,7 +61,7 @@ show_trail = True # Muestra la "estela" del planeta
 trail_width = 0.25 # Ancho de la estela
 save_to_file = True # False: muestra la animación por pantalla,
                      # True: la guarda en un fichero
-dpi = 300 # Calidad del vídeo de salida (dots per inch)
+dpi = 400 # Calidad del vídeo de salida (dots per inch)
 
 # Radio del planeta, en las mismas unidades que la posición
 # Puede ser un número (el radio de todos los planetas) o una lista con

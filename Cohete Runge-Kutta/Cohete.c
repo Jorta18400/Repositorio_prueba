@@ -38,7 +38,7 @@ int main(void)
     fenergia=fopen("Energia.txt", "w");
 
     //Incialicemos los parámetros
-    h=0.8; //Unos 30 segundos de paso temporal
+    h=1.0; //Paso temporal en segundos
     tmax=864000.0; //Tiempo máximo en segundos, unos 10 dias
     t=0.0;
     delta=G*MT/(1.0*dtL*dtL*dtL);
@@ -96,7 +96,7 @@ int main(void)
         pphi +=1/6.0*(k1[3]+2*k2[3]+2*k3[3]+k4[3]);
 
         imprimir++;
-        if(imprimir%100==0)
+        if(imprimir%1000==0)
         {
             fprintf(fposiciones, "%lf,\t%lf\n%lf,\t%lf\n%lf,\t%lf\n\n", 0.0, 0.0, r*cos(phi), r*sin(phi), cos(w*t), sin(w*t));
         }
