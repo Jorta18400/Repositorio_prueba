@@ -46,7 +46,7 @@ import io
 # Parámetros
 # ========================================
 file_in = "Red.txt" # Nombre del fichero de datos
-file_out = "Juan-def-0.02" # Nombre del fichero de salida (sin extensión)
+file_out = "Eduardo-def-0.0001" # Nombre del fichero de salida (sin extensión)
 interval = 50 # Tiempo entre fotogramas en milisegundos
 save_to_file = True # False: muestra la animación por pantalla,
                      # True: la guarda en un fichero

@@ -26,15 +26,15 @@ int main(void)
     double ji; //Es un número aleatorio
     FILE *finicial, *fred, *fsolap; //Ficheros inicial de donde sacamos el patron y red generada
 
-    finicial=fopen("Juan(40x40).txt","r"); //Abro ficheros
+    finicial=fopen("Eduardo(40x40).txt","r"); //Abro ficheros
     fred=fopen("Red.txt","w");
     fsolap=fopen("Solapamiento.txt","w");
 
     //Damos valores a las variables
-    T=0.025; 
+    T=0.0001; 
     pasos=N*N; //Vamos a dar N² pasos montecarlo, o sea N⁴ iteraciones
 
-    int semilla=6942069;
+    int semilla=6942069; //jaja funny
     tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
     gsl_rng_set(tau,semilla);
  
@@ -49,26 +49,26 @@ int main(void)
     }
     
     //Damos la configuracion inicial de espines, vamos a empezar con una configuracion aleatoria
-   for(i=0;i<N;i++)
-    {
-        for(j=0;j<N;j++)
-        {
-            s[i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
-        }
-    }
-    
-    //Damos la configuracion inicial de espines, vamos a empezar con el patron deformado
-//    for(i=0;i<N;i++)
+//   for(i=0;i<N;i++)
 //    {
 //        for(j=0;j<N;j++)
 //        {
-//            k=gsl_rng_uniform_int(tau,3); //Genera aleatorios entre 0 y 2
-//            if(k==1) //Uso k como auxiliar, no como contador
-//            {
-//                s[i][j]=1-patrones[0][i][j];
-//            }else s[i][j]=patrones[0][i][j];
+//            s[i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
 //        }
 //    }
+    
+    //Damos la configuracion inicial de espines, vamos a empezar con el patron deformado
+    for(i=0;i<N;i++)
+    {
+        for(j=0;j<N;j++)
+        {
+            k=gsl_rng_uniform_int(tau,3); //Genera aleatorios entre 0 y 2
+            if(k==1) //Uso k como auxiliar, no como contador
+            {
+                s[i][j]=1-patrones[0][i][j];
+            }else s[i][j]=patrones[0][i][j];
+        }
+    }
 
     //Ahora vamos a escribir en fichero la posición inicial
     for(j=0;j<N;j++)
