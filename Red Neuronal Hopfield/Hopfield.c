@@ -4,7 +4,7 @@
 #include"gsl_rng.h"
 
 #define N 40 //Tamaño red
-#define mu 1 //Nº de patrones almacenados
+#define mu 4 //Nº de patrones almacenados
 
 //Declaro variables globales para que no suceda un stack overflow
 int patrones[mu][N][N]; //Matriz 3d de mu*N*N para almacenar patrones
@@ -15,18 +15,18 @@ double w[N][N][N][N], a[mu], theta[N][N];
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
 
 double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N][N][N], double a[mu], double theta[N][N]); //Función que calcula la \Delta E
-double solapamiento (int s[N][N], int patrones[mu][N][N], double a[mu]); //Función que calcula el solapamiento en un instante dado
+double solapamiento (int s[N][N], int patrones[mu][N][N], double a[mu], int i); //Función que calcula el solapamiento en un instante dado
 
 int main(void)
 {
     extern gsl_rng *tau;
-    int i,j,k,l,n,m; //Contadores, mu es el número de patrones almacenados
+    int i,j,k,l,n,m; //Contadores
     double T,E,p; //Temperatura, energía y el parámetro p
     int pasos; //Número de pasos montecarlo que vamos a dar
     double ji; //Es un número aleatorio
-    FILE *finicial, *fred, *fsolap; //Ficheros inicial de donde sacamos el patron y red generada
+    FILE *fpatrones, *fred, *fsolap; //Ficheros inicial de donde sacamos el patron y red generada
 
-    finicial=fopen("Eduardo(40x40).txt","r"); //Abro ficheros
+    fpatrones=fopen("Patrones(40x40).txt","r"); //Abro ficheros
     fred=fopen("Red.txt","w");
     fsolap=fopen("Solapamiento.txt","w");
 
@@ -34,41 +34,44 @@ int main(void)
     T=0.0001; 
     pasos=N*N; //Vamos a dar N² pasos montecarlo, o sea N⁴ iteraciones
 
-    int semilla=6942069; //jaja funny
+    int semilla=6942069; 
     tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
     gsl_rng_set(tau,semilla);
  
 
     //Empezamo leyendo los patrones que queremos guardar
-    for(i=0;i<N;i++)
+    for(k=0;k<mu;k++)
     {
-        for(j=0;j<N;j++)
+        for(i=0;i<N;i++)
         {
-            fscanf(finicial,"%i,",&patrones[0][i][j]);
+            for(j=0;j<N;j++)
+            {
+                fscanf(fpatrones,"%i,",&patrones[k][i][j]);
+            }
         }
     }
     
     //Damos la configuracion inicial de espines, vamos a empezar con una configuracion aleatoria
-//   for(i=0;i<N;i++)
-//    {
-//        for(j=0;j<N;j++)
-//        {
-//            s[i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
-//        }
-//    }
-    
-    //Damos la configuracion inicial de espines, vamos a empezar con el patron deformado
-    for(i=0;i<N;i++)
+   for(i=0;i<N;i++)
     {
         for(j=0;j<N;j++)
         {
-            k=gsl_rng_uniform_int(tau,3); //Genera aleatorios entre 0 y 2
-            if(k==1) //Uso k como auxiliar, no como contador
-            {
-                s[i][j]=1-patrones[0][i][j];
-            }else s[i][j]=patrones[0][i][j];
+            s[i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
         }
     }
+    
+//    //Damos la configuracion inicial de espines, vamos a empezar con el patron deformado
+//    for(i=0;i<N;i++)
+//    {
+//        for(j=0;j<N;j++)
+//        {
+//            k=gsl_rng_uniform_int(tau,3); //Genera aleatorios entre 0 y 2
+//            if(k==1) //Uso k como auxiliar, no como contador
+//            {
+//                s[i][j]=1-patrones[0][i][j];
+//            }else s[i][j]=patrones[0][i][j];
+//        }
+//    }
 
     //Ahora vamos a escribir en fichero la posición inicial
     for(j=0;j<N;j++)
@@ -112,10 +115,14 @@ int main(void)
         //Calculemos el solapamiento para la red que queda tras este paso montecarlo
         for(i=0;i<mu;i++)
         {
-            solap[i]=solapamiento(s,patrones,a);
+            solap[i]=solapamiento(s,patrones,a,i);
         }
         //Y lo escribimos en fichero
-        fprintf(fsolap, "%lf\n", solap[0]);
+        for(l=0;l<mu;l++)
+        {
+            fprintf(fsolap, "%lf\t", solap[l]);
+        }
+        fprintf(fsolap, "\n");
         
         //Ahora vamos a escribir en fichero la posición actual
         for(j=0;j<N;j++)
@@ -133,7 +140,7 @@ int main(void)
 
 
     fclose(fred);
-    fclose(finicial);
+    fclose(fpatrones);
     fclose(fsolap);
 
     return 0;
@@ -223,20 +230,20 @@ double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N]
     return dE;
 }
 
-double solapamiento (int s[N][N], int patrones[mu][N][N], double a[mu])
+double solapamiento (int s[N][N], int patrones[mu][N][N], double a[mu], int i)
 {
     double solapa; //El solapamiento
-    int i,j; //Contadores
+    int k,j; //Contadores
 
     solapa=0.0; //inicializo
-    for(i=0;i<N;i++)
+    for(k=0;k<N;k++)
     {
         for(j=0;j<N;j++)
         {
-            solapa += (patrones[0][i][j]-a[0])*(s[i][j]-a[0]);
+            solapa += (patrones[i][k][j]-a[i])*(s[k][j]-a[i]);
         }
     }
-    solapa *= 1.0/(N*N*a[0]*(1-a[0]));
+    solapa *= 1.0/(N*N*a[i]*(1-a[i]));
 
     return solapa;
 } 
