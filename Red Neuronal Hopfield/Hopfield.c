@@ -3,8 +3,8 @@
 #include<math.h>
 #include"gsl_rng.h"
 
-#define N 40 //Tamaño red
-#define mu 4 //Nº de patrones almacenados
+#define N 100 //Tamaño red
+#define mu 3 //Nº de patrones almacenados
 
 //Declaro variables globales para que no suceda un stack overflow
 int patrones[mu][N][N]; //Matriz 3d de mu*N*N para almacenar patrones
@@ -26,7 +26,7 @@ int main(void)
     double ji; //Es un número aleatorio
     FILE *fpatrones, *fred, *fsolap; //Ficheros inicial de donde sacamos el patron y red generada
 
-    fpatrones=fopen("Patrones(40x40).txt","r"); //Abro ficheros
+    fpatrones=fopen("A(100x100).txt","r"); //Abro ficheros
     fred=fopen("Red.txt","w");
     fsolap=fopen("Solapamiento.txt","w");
 
@@ -34,12 +34,24 @@ int main(void)
     T=0.0001; 
     pasos=N*N; //Vamos a dar N² pasos montecarlo, o sea N⁴ iteraciones
 
-    int semilla=6942069; 
+    srand(time(NULL));
+    int semilla=rand()%990001+1000; //genera una semilla aleatoria entre 10000 y 1000000 
     tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
     gsl_rng_set(tau,semilla);
  
+//    for(k=0;k<mu;k++) //genero patrones aleatorios que son los que vamos a guardar en memoria
+//    {
+//        for(i=0;i<N;i++)
+//        {
+//            for(j=0;j<N;j++)
+//            {
+//            patrones[k][i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
+//            }
+//        }
+//    }
 
-    //Empezamo leyendo los patrones que queremos guardar
+
+    //Empezamos leyendo los patrones que queremos guardar
     for(k=0;k<mu;k++)
     {
         for(i=0;i<N;i++)
@@ -51,27 +63,35 @@ int main(void)
         }
     }
     
-    //Damos la configuracion inicial de espines, vamos a empezar con una configuracion aleatoria
-   for(i=0;i<N;i++)
+//    for(i=0;i<N;i++) //Genero una matriz inicial aleatoria
+//    {
+//       for(j=0;j<N;j++)
+//        {
+//           s[i][j]=1; //Genera aleatorios entre 0 y 1
+//        }
+//    }
+
+    
+    for(i=0;i<N;i++) //Damos la configuracion inicial de espines, vamos a empezar con una configuracion aleatoria
     {
         for(j=0;j<N;j++)
         {
-            s[i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
+           s[i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
         }
     }
     
-//    //Damos la configuracion inicial de espines, vamos a empezar con el patron deformado
-//    for(i=0;i<N;i++)
+//    for(i=0;i<N;i++) //Damos la configuracion inicial de espines, vamos a empezar con el patron deformado
 //    {
 //        for(j=0;j<N;j++)
 //        {
-//            k=gsl_rng_uniform_int(tau,3); //Genera aleatorios entre 0 y 2
+//            k=gsl_rng_uniform_int(tau,4); //Genera aleatorios entre 0 y 4
 //            if(k==1) //Uso k como auxiliar, no como contador
 //            {
 //                s[i][j]=1-patrones[0][i][j];
 //            }else s[i][j]=patrones[0][i][j];
 //        }
 //    }
+
 
     //Ahora vamos a escribir en fichero la posición inicial
     for(j=0;j<N;j++)
@@ -86,7 +106,37 @@ int main(void)
     }
     fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red
 
-    for(k=0;k<30;k++) //En este for se hace el core del código, se van buscando las posiciones aleatorias y viendo si se cambia su signo o no
+
+    for(i=0;i<mu;i++)  //Necesito sacar la a para calcular los solapamientos después 
+    {
+        a[i]=0.0; //Inicializo a
+    }
+    for(k=0;k<mu;k++) 
+    {
+        for(i=0;i<N;i++)
+        {
+            for(j=0;j<N;j++)
+            {
+                a[k]+=patrones[k][i][j];
+            }
+        }
+        a[k]*=1.0/(N*N);
+    }
+
+    //Calculemos el solapamiento para la red inicial
+    for(i=0;i<mu;i++)
+    {
+        solap[i]=solapamiento(s,patrones,a,i);
+    }
+    //Y lo escribimos en fichero
+    for(l=0;l<mu;l++)
+    {
+        fprintf(fsolap, "%lf\t", solap[l]);
+    }
+    fprintf(fsolap, "\n");
+
+
+    for(k=0;k<20;k++) //En este for se hace el core del código, se van buscando las posiciones aleatorias y viendo si se cambia su signo o no
     {
         for(i=0;i<pasos;i++)
         {
@@ -150,27 +200,18 @@ int main(void)
 double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N][N][N], double a[mu], double theta[N][N])
 {
     int i,j,k,l,h; //Contadores
-    int sprima[N][N]; //Matriz opuesta a s
+    int sprima[N][N]; //Matriz s pero con la neurona n,m cambiada
     double dE; //Delta E
     double x,y; //Auxiliares
 
-    for(i=0;i<mu;i++) 
-    {
-        a[i]=0.0; //Inicializo a
-    }
-    for(k=0;k<mu;k++) //Calculamos a para empezar
-    {
-        for(i=0;i<N;i++)
-        {
-            for(j=0;j<N;j++)
-            {
-                a[k]+=patrones[k][i][j];
-            }
-        }
-        a[k]*=1.0/(N*N);
-    }
-
     //Calculamos la función de pesos sinápticos w
+    for(k=0;k<N;k++)
+    {
+        for(l=0;l<N;l++)
+        {
+            w[n][m][k][l]=0.0;  //Inicializo w para los n,m que vamos a utilizar 
+        }
+    }
     for(k=0;k<N;k++)
     {
         for(l=0;l<N;l++)
@@ -179,13 +220,14 @@ double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N]
             {
                 if(n==k && m==l)
                 {
-                    w[n][m][k][l] = 0.0;
+                    w[n][m][k][l] += 0.0;
                 }else
                 {
-                    w[n][m][k][l] = (patrones[h][n][m]-a[h]) * (patrones[h][k][l]-a[h]);
-                    w[n][m][k][l] = (w[n][m][k][l])/(1.0*N*N);
+                    w[n][m][k][l] += (patrones[h][n][m]-a[h]) * (patrones[h][k][l]-a[h]);
+                    
                 }
-            }    
+            } 
+            w[n][m][k][l] *= 1.0/(N*N);   
         }
     }
 
@@ -198,7 +240,7 @@ double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N]
             theta[n][m] += w[n][m][k][l];
         }
     }
-    theta[n][m]=0.5*theta[n][m];
+    theta[n][m] *= 0.5;
 
 
 
@@ -215,13 +257,13 @@ double Energia (int s[N][N], int n, int m, int patrones[mu][N][N],double w[N][N]
 
     //Calculemos la diferencia de energia entre el estado en el que estamos y al que sería posible que pasáramos
     dE=0.0; 
-    x=0;
-    y=0;
+    x=0.0;
+    y=0.0;
         for(i=0;i<N;i++)
         {
             for(j=0;j<N;j++)
            {
-                    x+= w[n][m][i][j]*sprima[i][j];  //Aquí usaré k y l como auxiliares no como contadores
+                    x+= w[n][m][i][j]*sprima[i][j];  
                     y+= w[n][m][i][j]*s[i][j];             
             }
         }
