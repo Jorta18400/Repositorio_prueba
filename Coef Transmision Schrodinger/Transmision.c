@@ -8,16 +8,16 @@ gsl_rng *tau; //Definimos como variable general esto para generar los números a
 
 #define N 1000 //Esto define la longitud del pozo de potencial
 #define nD 10 //Define el tiempo entre medidas de probabilidad
-#define nmax 1000 //Define un tope para el tiempo
+#define nmax 500 //Define un tope para el tiempo
 #define itera 1000 //Define el número de veces que se corre la simulación
 #define nciclos 100 //Número de ciclos 
 #define lambda 0.7
 #define h 1 //Paso espacial
 #define PI 3.141592
 
-int n,t; //Contadores de tiempo
+int n; //Contador de tiempo
 int m, mT; //Contadores de detección
-int i,j; //Contadores
+int i,j,t, contador; //Contadores
 double norma, T, Pi, Pd; //Norma de la funcion de onda, coeficiente de transmision, probabilidad en izquierda y en derecha
 double V[N]; //potencial
 fcomplex Phi[N][nmax], Xi[N][nmax]; //Funcion de onda y la Xi de los apuntes
@@ -47,6 +47,7 @@ int main (void)
     im=Complex(0.0,1.0);
     mT=0;
     m=0;
+    contador=0;
     
     for(j=0;j<N;j+=h) //Este es el potencial
     {
@@ -60,8 +61,6 @@ int main (void)
     i=0;
     while(i<=itera)
     {
-        t=0;
-
         //Toca definir la función de onda inicial ahora 
         for(j=1;j<(N-1);j+=h)
         {
@@ -94,8 +93,18 @@ int main (void)
             alpha[j-1]=Cmul( Complex(-1.0,0.0),gammabien[j] );
         }
 
-        for(n=t;n<(t+nD);n++) //bucle para dejar avanzar el sistema
-        {
+        
+        for(n=0;n<=nD;n++) //bucle para dejar avanzar el sistema
+        { 
+            if(contador>0) //Si no es la primera vez que se ejecuta el bucle se resetea el cero a la ultima phi calculada en el anterior bucle
+            {
+                for(j=0;j<N;j+=h)
+                {
+                    Phi[j][0]=Phi[j][nD];
+                }
+            }
+            contador++;
+
             for(j=0;j<N;j+=h) //Sacamos b, que necesitamos para calcular beta
             {
                 aux=RCmul( 4.0/s , Phi[j][n] );
@@ -123,8 +132,8 @@ int main (void)
             }
             Phi[0][n]=Complex(0.0,0.0);
             Phi[N-1][n]=Complex(0.0,0.0); //Condiciones de contorno
-
-            if(n%nD==0) //Básicamente si n es múltiplo de nD
+                                                                                                     //JOSE DEL FUTURO, EL PROBLEMA PARECE ESTAR EN QUE LAS PD Y PI
+            if(n==nD) //Cada nD pasos se hace esta comprobación                                      //SON DEMASIADO PEQUEÑAS Y NO SE SUMA NINGUNA M
             {
                 //Calculemos la probabilidad en la derecha de detectar la particula
                 Pd=0.0;
@@ -185,7 +194,6 @@ int main (void)
                     }   
                 }
             }
-            t=n; //"Guardamos" el tiempo hasta donde habíamos avanzado y seguimos 
         }
         i++;
     }
