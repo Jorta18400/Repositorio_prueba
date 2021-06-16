@@ -8,22 +8,22 @@ gsl_rng *tau; //Definimos como variable general esto para generar los números a
 
 #define N 1000 //Esto define la longitud del pozo de potencial
 #define nD 10 //Define el tiempo entre medidas de probabilidad
-#define nmax 500 //Define un tope para el tiempo
 #define itera 1000 //Define el número de veces que se corre la simulación
-#define nciclos 100 //Número de ciclos 
-#define lambda 0.7
+#define nciclos 250 //Número de ciclos 
+#define lambda 0.1
 #define h 1 //Paso espacial
 #define PI 3.141592
 
 int n; //Contador de tiempo
-int m, mT; //Contadores de detección
+int mT; //Contadores de detección
+int detectado; //Vale 1 si no hay detección y 2 si si la hay
 int i,j,t, contador; //Contadores
 double norma, T, Pi, Pd; //Norma de la funcion de onda, coeficiente de transmision, probabilidad en izquierda y en derecha
 double V[N]; //potencial
-fcomplex Phi[N][nmax], Xi[N][nmax]; //Funcion de onda y la Xi de los apuntes
-fcomplex alpha[N], beta[N][nmax];
+fcomplex Phi[N][2], Xi[N]; //Funcion de onda y la Xi de los apuntes. Phi[j][0] será la función de onda en el instante actual y Phi[j][1] la del instante siguiente
+fcomplex alpha[N], beta[N];
 fcomplex A0[N], gammainverso[N]; //Parámetros de los apuntes
-fcomplex b[N][nmax], gammabien[N];
+fcomplex b[N], gammabien[N];
 
 int main (void)
 {
@@ -46,7 +46,6 @@ int main (void)
     s=1.0/(4*k0);
     im=Complex(0.0,1.0);
     mT=0;
-    m=0;
     contador=0;
     
     for(j=0;j<N;j+=h) //Este es el potencial
@@ -70,6 +69,7 @@ int main (void)
         Phi[0][0]=Complex(0.0,0.0);
         Phi[N-1][0]=Complex(0.0,0.0); //Condiciones de contorno
 
+        norma=0.0;
         for(j=1;j<(N-1);j+=h) //De uno a N-2 porque en 0 y N-1 estan las condiciones de contorno
         {
             norma += pow(Cabs(Phi[j][0]),2); 
@@ -93,112 +93,113 @@ int main (void)
             alpha[j-1]=Cmul( Complex(-1.0,0.0),gammabien[j] );
         }
 
-        
-        for(n=0;n<=nD;n++) //bucle para dejar avanzar el sistema
+        detectado=1;
+        n=0;
+        while(detectado<2) //bucle para dejar avanzar el sistema, mientras no se detecte nada
         { 
             if(contador>0) //Si no es la primera vez que se ejecuta el bucle se resetea el cero a la ultima phi calculada en el anterior bucle
             {
                 for(j=0;j<N;j+=h)
                 {
-                    Phi[j][0]=Phi[j][nD];
+                    Phi[j][0]=Phi[j][1];
                 }
             }
             contador++;
 
             for(j=0;j<N;j+=h) //Sacamos b, que necesitamos para calcular beta
             {
-                aux=RCmul( 4.0/s , Phi[j][n] );
-                b[j][n]=Cmul( aux , im);
+                aux=RCmul( 4.0/s , Phi[j][0] );
+                b[j]=Cmul( aux , im);
             }
 
-            beta[N-2][n]=Complex(0.0,0.0);
+            beta[N-2]=Complex(0.0,0.0);
             for(j=N-3;j>0;j--) //Calculamos beta 
             {
-                beta[j][n]=Cmul( gammabien[j] , Csub( b[j][n] , beta[j+1][n] ) );
+                beta[j]=Cmul( gammabien[j] , Csub( b[j] , beta[j+1] ) );
             }
 
-            Xi[0][n]=Complex(0.0,0.0); //Condiciones de contorno
-            Xi[N-1][n]=Complex(0.0,0.0);
+            Xi[0]=Complex(0.0,0.0); //Condiciones de contorno
+            Xi[N-1]=Complex(0.0,0.0);
 
             for(j=1;j<N;j+=h) //Calculo Xi
             {
-                Xi[j][n]=Cadd( Cmul( alpha[j] , Xi[j-1][n]) , beta[j][n]);
+                Xi[j]=Cadd( Cmul( alpha[j] , Xi[j-1]) , beta[j]);
             }
 
             //Calculamos ahora la Phi del paso temporal siguiente
             for(j=1;j<(N-1);j+=h)
             {
-                Phi[j][n+1] = Csub( Xi[j][n] , Phi[j][n]);
+                Phi[j][1] = Csub( Xi[j] , Phi[j][0]);
             }
-            Phi[0][n]=Complex(0.0,0.0);
-            Phi[N-1][n]=Complex(0.0,0.0); //Condiciones de contorno
-                                                                                                     //JOSE DEL FUTURO, EL PROBLEMA PARECE ESTAR EN QUE LAS PD Y PI
-            if(n==nD) //Cada nD pasos se hace esta comprobación                                      //SON DEMASIADO PEQUEÑAS Y NO SE SUMA NINGUNA M
+            Phi[0][0]=Complex(0.0,0.0);
+            Phi[N-1][0]=Complex(0.0,0.0); //Condiciones de contorno
+      
+            if(n%nD==0) //Cada nD pasos se hace esta comprobación                                    
             {
                 //Calculemos la probabilidad en la derecha de detectar la particula
                 Pd=0.0;
                 for(j=4*N/5.0;j<(N-1);j++)
                 {
-                    Pd += pow(Cabs(Phi[j][n]),2);
+                    Pd += pow(Cabs(Phi[j][0]),2);
                 }
 
                 x=gsl_rng_uniform(tau); //Genera aleatorio entre 0 y 1
                 if(x<Pd) //Si se cumple hay detección
                 {
                     mT++;
-                    m++;
                     {break;}
                 }
                 else
                 {
                     for(j=4*N/5.0;j<(N-1);j++)
                     {
-                        Phi[j][n]=Complex(0.0,0.0);
+                        Phi[j][0]=Complex(0.0,0.0);
                     }
+                    norma=0.0;
                     for(j=1;j<(N-1);j+=h) //De uno a N-2 porque en 0 y N-1 estan las condiciones de contorno
                     {
-                    norma += pow(Cabs(Phi[j][n]),2); 
+                        norma += pow(Cabs(Phi[j][0]),2); 
                     }
                     for(j=0;j<N;j+=h)
                     {
-                        Phi[j][0]=RCmul( 1/sqrt(norma) , Phi[j][n] );
+                        Phi[j][0]=RCmul( 1/sqrt(norma) , Phi[j][0] );
                     }
                 
                     //Vamos con la probabilidad a la izquierda
                     Pi=0.0;
                     for(j=1;j<=(N/5.0);j++)
                     {
-                        Pi += pow(Cabs(Phi[j][n]),2);
+                        Pi += pow(Cabs(Phi[j][0]),2);
                     }
                     x=gsl_rng_uniform(tau);
                 
                     if(x<Pi) //Si se cumple habrá detección
                     {
-                        m++;
                         {break;}
                     }
                     else
                     {
                         for(j=1;j<=(N/5.0);j++)
                         {
-                            Phi[j][n]=Complex(0.0,0.0);
+                            Phi[j][0]=Complex(0.0,0.0);
                         }
+                        norma=0.0;
                         for(j=1;j<(N-1);j+=h) //De uno a N-2 porque en 0 y N-1 estan las condiciones de contorno
                         {
-                            norma += pow(Cabs(Phi[j][n]),2); 
+                            norma += pow(Cabs(Phi[j][0]),2); 
                         }
                         for(j=0;j<N;j+=h)
                         {
-                            Phi[j][0]=RCmul( 1/sqrt(norma) , Phi[j][n] );
+                            Phi[j][0]=RCmul( 1/sqrt(norma) , Phi[j][0] );
                         }                       
                     }   
                 }
             }
+            n++;
         }
         i++;
     }
-    T=1.0*mT/m; //Calculamos el coeficiente de transmisión
-    
+    T=(1.0*mT)/(1.0*itera); //Calculamos el coeficiente de transmisión    
     fprintf(fcoeficiente, "%lf\n", T);
 
     fclose(fnorma);
