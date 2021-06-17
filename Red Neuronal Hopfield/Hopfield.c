@@ -3,8 +3,8 @@
 #include<math.h>
 #include"gsl_rng.h"
 
-#define N 100 //Tamaño red
-#define mu 3 //Nº de patrones almacenados
+#define N 40 //Tamaño red
+#define mu 4 //Nº de patrones almacenados
 
 //Declaro variables globales para que no suceda un stack overflow
 int patrones[mu][N][N]; //Matriz 3d de mu*N*N para almacenar patrones
@@ -26,7 +26,7 @@ int main(void)
     double ji; //Es un número aleatorio
     FILE *fpatrones, *fred, *fsolap; //Ficheros inicial de donde sacamos el patron y red generada
 
-    fpatrones=fopen("A(100x100).txt","r"); //Abro ficheros
+    fpatrones=fopen("Patrones(40x40).txt","r"); //Abro ficheros
     fred=fopen("Red.txt","w");
     fsolap=fopen("Solapamiento.txt","w");
 
@@ -39,7 +39,7 @@ int main(void)
     tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
     gsl_rng_set(tau,semilla);
  
-//    for(k=0;k<mu;k++) //genero patrones aleatorios que son los que vamos a guardar en memoria
+//    for(k=0;k<mu;k++) //genero patrones aleatorios que son los que vamos a guardar en memoria      //ESTO SE USA EN EL APARTADO 4
 //    {
 //        for(i=0;i<N;i++)
 //        {
@@ -63,20 +63,11 @@ int main(void)
         }
     }
     
-//    for(i=0;i<N;i++) //Genero una matriz inicial aleatoria
-//    {
-//       for(j=0;j<N;j++)
-//        {
-//           s[i][j]=1; //Genera aleatorios entre 0 y 1
-//        }
-//    }
-
-    
     for(i=0;i<N;i++) //Damos la configuracion inicial de espines, vamos a empezar con una configuracion aleatoria
     {
         for(j=0;j<N;j++)
         {
-           s[i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
+          s[i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
         }
     }
     
@@ -84,12 +75,12 @@ int main(void)
 //    {
 //        for(j=0;j<N;j++)
 //        {
-//            k=gsl_rng_uniform_int(tau,4); //Genera aleatorios entre 0 y 4
-//            if(k==1) //Uso k como auxiliar, no como contador
-//            {
-//                s[i][j]=1-patrones[0][i][j];
-//            }else s[i][j]=patrones[0][i][j];
-//        }
+//            k=gsl_rng_uniform_int(tau,4); //Genera aleatorios entre 0 y 3      //Se genera un aleatorio dentro de un intervalo controlado 
+//            if(k==1) //Uso k como auxiliar, no como contador                   // y si este es igual a 1 se hace un cambio en la matriz del patron,
+//            {                                                                  // deformándolo. A más amplio el intervalo menos deformado el patrón
+//                s[i][j]=1-patrones[1][i][j];
+//            }else s[i][j]=patrones[1][i][j];
+//      }
 //    }
 
 
@@ -136,7 +127,7 @@ int main(void)
     fprintf(fsolap, "\n");
 
 
-    for(k=0;k<20;k++) //En este for se hace el core del código, se van buscando las posiciones aleatorias y viendo si se cambia su signo o no
+    for(k=0;k<30;k++) //En este for se hace el core del código, se van buscando las posiciones aleatorias y viendo si se cambia su signo o no
     {
         for(i=0;i<pasos;i++)
         {
