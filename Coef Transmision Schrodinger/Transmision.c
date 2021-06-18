@@ -7,10 +7,10 @@
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
 
 #define N 1000 //Esto define la longitud del pozo de potencial
-#define nD 10 //Define el tiempo entre medidas de probabilidad
+#define nD 1000 //Define el tiempo entre medidas de probabilidad
 #define itera 1000 //Define el número de veces que se corre la simulación
-#define nciclos 250 //Número de ciclos 
-#define lambda 0.1
+#define nciclos N/4  //Número de ciclos 
+#define lambda 0.3
 #define h 1 //Paso espacial
 #define PI 3.141592
 
@@ -37,7 +37,7 @@ int main (void)
     fnorma=fopen("Norma.txt", "w");
     fcoeficiente=fopen("Coeficiente.txt","w");
 
-    int semilla=6942069; //jaja funny
+    int semilla=6942069; 
     tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
     gsl_rng_set(tau,semilla);
 
@@ -113,9 +113,9 @@ int main (void)
             }
 
             beta[N-2]=Complex(0.0,0.0);
-            for(j=N-3;j>0;j--) //Calculamos beta 
+            for(j=N-2;j>0;j--) //Calculamos beta 
             {
-                beta[j]=Cmul( gammabien[j] , Csub( b[j] , beta[j+1] ) );
+                beta[j-1]=Cmul( gammabien[j] , Csub( b[j] , beta[j] ) );
             }
 
             Xi[0]=Complex(0.0,0.0); //Condiciones de contorno
@@ -123,7 +123,7 @@ int main (void)
 
             for(j=1;j<N;j+=h) //Calculo Xi
             {
-                Xi[j]=Cadd( Cmul( alpha[j] , Xi[j-1]) , beta[j]);
+                Xi[j]=Cadd( Cmul( alpha[j-1] , Xi[j-1]) , beta[j-1]);
             }
 
             //Calculamos ahora la Phi del paso temporal siguiente
@@ -138,7 +138,7 @@ int main (void)
             {
                 //Calculemos la probabilidad en la derecha de detectar la particula
                 Pd=0.0;
-                for(j=4*N/5.0;j<(N-1);j++)
+                for(j=4*N/5.0;j<(N-1);j+=h)
                 {
                     Pd += pow(Cabs(Phi[j][0]),2);
                 }
@@ -151,7 +151,7 @@ int main (void)
                 }
                 else
                 {
-                    for(j=4*N/5.0;j<(N-1);j++)
+                    for(j=4*N/5.0;j<(N-1);j+=h)
                     {
                         Phi[j][0]=Complex(0.0,0.0);
                     }
@@ -167,7 +167,7 @@ int main (void)
                 
                     //Vamos con la probabilidad a la izquierda
                     Pi=0.0;
-                    for(j=1;j<=(N/5.0);j++)
+                    for(j=1;j<=(N/5.0);j+=h)
                     {
                         Pi += pow(Cabs(Phi[j][0]),2);
                     }
@@ -179,7 +179,7 @@ int main (void)
                     }
                     else
                     {
-                        for(j=1;j<=(N/5.0);j++)
+                        for(j=1;j<=(N/5.0);j+=h)
                         {
                             Phi[j][0]=Complex(0.0,0.0);
                         }
