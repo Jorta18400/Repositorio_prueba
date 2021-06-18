@@ -6,9 +6,9 @@
 
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
 
-#define N 1000 //Esto define la longitud del pozo de potencial
+#define N 500 //Esto define la longitud del pozo de potencial
 #define nmax 2000 //Define el maximo de tiempo
-#define nciclos 100 //Número de ciclos 
+#define nciclos 125 //Número de ciclos 
 #define lambda 0.7
 #define h 1 //Paso espacial
 #define PI 3.141592
@@ -92,9 +92,9 @@ int main (void)
         }
 
         beta[N-2][n]=Complex(0.0,0.0);
-        for(j=N-3;j>0;j--) //Calculamos beta 
+        for(j=N-2;j>0;j--) //Calculamos beta 
         {
-            beta[j][n]=Cmul( gammabien[j] , Csub( b[j][n] , beta[j+1][n] ) );
+            beta[j-1][n]=Cmul( gammabien[j] , Csub( b[j][n] , beta[j][n] ) );
         }
 
         Xi[0][n]=Complex(0.0,0.0); //Condiciones de contorno
@@ -102,7 +102,7 @@ int main (void)
 
         for(j=1;j<N;j+=h) //Calculo Xi
         {
-            Xi[j][n]=Cadd( Cmul( alpha[j] , Xi[j-1][n]) , beta[j][n]);
+            Xi[j][n]=Cadd( Cmul( alpha[j-1] , Xi[j-1][n]) , beta[j-1][n]);
         }
 
         //Calculamos ahora la Phi del paso temporal siguiente
