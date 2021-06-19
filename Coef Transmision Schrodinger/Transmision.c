@@ -7,10 +7,10 @@
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
 
 #define N 1000 //Esto define la longitud del pozo de potencial
-#define nD 1000 //Define el tiempo entre medidas de probabilidad
+#define nD 50 //Define el tiempo entre medidas de probabilidad
 #define itera 1000 //Define el número de veces que se corre la simulación
 #define nciclos N/4  //Número de ciclos 
-#define lambda 0.3
+#define lambda 0.7
 #define h 1 //Paso espacial
 #define PI 3.141592
 
@@ -18,9 +18,10 @@ int n; //Contador de tiempo
 int mT; //Contadores de detección
 int detectado; //Vale 1 si no hay detección y 2 si si la hay
 int i,j,t, contador; //Contadores
-double norma, T, Pi, Pd; //Norma de la funcion de onda, coeficiente de transmision, probabilidad en izquierda y en derecha
-double V[N]; //potencial
+double norma, T, Tteo, Pi, Pd; //Norma de la funcion de onda, coeficiente de transmision, coef trans teórico, probabilidad en izquierda y en derecha
+double V[N], E; //potencial y energía
 fcomplex Phi[N][2], Xi[N]; //Funcion de onda y la Xi de los apuntes. Phi[j][0] será la función de onda en el instante actual y Phi[j][1] la del instante siguiente
+fcomplex DerivadaPhi[N][2]; //Segunda derivada de la función de onda
 fcomplex alpha[N], beta[N];
 fcomplex A0[N], gammainverso[N]; //Parámetros de los apuntes
 fcomplex b[N], gammabien[N];
@@ -32,18 +33,19 @@ int main (void)
     fcomplex im; //La unidad imaginaria
     fcomplex aux; //Variable auxiliar compleja
 
-    FILE *fnorma, *fcoeficiente; //ficheros
+    FILE *fnorma, *fcoeficiente, *fenergia; //ficheros
 
     fnorma=fopen("Norma.txt", "w");
     fcoeficiente=fopen("Coeficiente.txt","w");
+    fenergia=fopen("Energia.txt", "w");
 
     int semilla=6942069; 
     tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
     gsl_rng_set(tau,semilla);
 
     //Vamos a generar los parámetros iniciales
-    k0=(2*PI*nciclos)/N;
-    s=1.0/(4*k0);
+    k0=(2.0*PI*nciclos)/N;
+    s=1.0/(4.0*k0);
     im=Complex(0.0,1.0);
     mT=0;
     contador=0;
@@ -92,6 +94,20 @@ int main (void)
             gammabien[j]=Cdiv(Complex(1.0,0.0),gammainverso[j]);
             alpha[j-1]=Cmul( Complex(-1.0,0.0),gammabien[j] );
         }
+
+        //vamos a calcular la energía de la onda, para lo que necesito la segunda derivada
+        for(j=1;j<(N-1);j+=h) 
+        {
+            DerivadaPhi[j][0]=RCmul( 1.0/(h*h), Csub( Phi[j+1][0], Cadd(RCmul(2,Phi[j][0]),Phi[j-1][0]) ) );
+        }
+        E=0.0;
+        aux=Complex(0.0,0.0);
+        for(j=1;j<(N-1);j+=h)
+        {
+            aux = Cadd( aux, RCmul( V[j], Csub( Phi[j][0],DerivadaPhi[j][0] ) ) );
+            E = aux.r;
+        }
+        fprintf(fenergia, "%lf\n", E);
 
         detectado=1;
         n=0;
@@ -203,6 +219,7 @@ int main (void)
     fprintf(fcoeficiente, "%lf\n", T);
 
     fclose(fnorma);
+    fclose(fenergia);
     fclose(fcoeficiente);
 
     return 0;
