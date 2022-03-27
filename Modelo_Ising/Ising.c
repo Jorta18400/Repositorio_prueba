@@ -52,7 +52,7 @@ int main(void)
 //    {
 //          for(j=0;j<=(N+1);j++)
 //        {
-//            signo=gsl_rng_uniform_int(tau,2); //Genera un aleatorio entre 0 y 1
+//            signo=gsl_rng_uniform_int(tau,2); //Genera un aleatorio entero entre 0 y 1
 //            
 //            if(signo==0)
 //            {

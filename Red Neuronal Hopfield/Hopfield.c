@@ -45,7 +45,7 @@ int main(void)
 //        {
 //            for(j=0;j<N;j++)
 //            {
-//            patrones[k][i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
+//            patrones[k][i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios enteros entre 0 y 1
 //            }
 //        }
 //    }
@@ -67,7 +67,7 @@ int main(void)
     {
         for(j=0;j<N;j++)
         {
-          s[i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios entre 0 y 1
+          s[i][j]=gsl_rng_uniform_int(tau,2); //Genera aleatorios enteros entre 0 y 1
         }
     }
     
