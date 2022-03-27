@@ -17,8 +17,8 @@ int main(void)
     int semilla=6942069; //La semilla a partir de la cual se generan los aleatorios
     tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
     gsl_rng_set(tau,semilla);
-    
 
+    
 
 
 
