@@ -28,10 +28,13 @@ int main(void)
     int aleatorioint; //Un número entero aleatorio
     double aleatorioreal; //Un número real aleatorio 
     int t; //Contador de tiempo
+    FILE *fred; //Fichero donde se guarda la red en cada iteración
 
     int semilla=6942069; //La semilla a partir de la cual se generan los aleatorios
     tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
     gsl_rng_set(tau,semilla);
+
+    fred=fopen("Red.txt", "w"); //Abro el fichero
 
     //Inicializamos la matriz en la que, inicialmente, todos los nodos son susceptibles
     for(i=1;i<=N;i++) //Desde 1 hasta N porque defino valores en la matriz central NxN, las condiciones periódicas rellenan la (N+2)x(N+2)
@@ -112,7 +115,6 @@ int main(void)
                     if(s[i][j]==2) s[i][j]=-1; //Volvemos a recorrer la matriz y transformamos los nodos que valen 2 en infectados
                 }
             }
-
         }
     }
     
