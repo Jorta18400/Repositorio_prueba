@@ -10,10 +10,9 @@
 #include"gsl_rng.h"
 
 #define N 20 //El tamaño de la red (NxN)
-#define M=N*N //Esto es para la matriz de vecindad,que tendrá N² filas y 4 columnas
 #define p 0.1 //La probabilidad de recombinacion de la red
 #define chi 0.001 //La probabilidad de mutación de la enfermedad
-#define lambda 0.45
+#define lambda 0.55 //La probabilidad de infectarse que tiene un nodo si su vecino esta infectado
 #define mu 1 //La probabilidad de recuperación de un infectado
 #define tmax 1000 //Es el número de iteraciones que se realizarán
 #define Nsim 1 //Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
@@ -23,6 +22,9 @@ int main(void)
 {
     extern gsl_rng *tau; 
     int i,j,k,l,simulaciones; //Contadores enteros
+    int M; //Sirve para definir el tamaño de la matriz de vecindad
+    M=N*N;
+
     int s[N+2][N+2]; //La matriz s será nuestra red o "mundo", donde cada nodo será un individuo
     int vecindad[M][4];//En esta matriz se almacenan las conexiones entre nodos de la red(Cada fila es un nodo y las 4 columnas son sus conexiones)(Revisar si esto se puede hacer de forma mas eficiente)
     int aleatorioint; //Un número entero aleatorio
@@ -30,7 +32,8 @@ int main(void)
     int t; //Contador de tiempo
     FILE *fred; //Fichero donde se guarda la red en cada iteración
 
-    int semilla=6942069; //La semilla a partir de la cual se generan los aleatorios
+    srand(time(NULL));
+    int semilla=rand()%990001+1000; //genera una semilla aleatoria entre 10000 y 1000000 
     tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
     gsl_rng_set(tau,semilla);
 
@@ -44,6 +47,19 @@ int main(void)
             s[i][j]=0; //En la matriz s, el valor 0 significará susceptible, el -1 infectado y el 1 recuperado
         }
     }
+
+    //Ahora vamos a escribir en fichero la posición inicial
+    for(j=1;j<=N;j++)
+    {
+        for(l=1;l<=N;l++)
+        {
+            if(l==N) //Si es el último elemento de la fila hacemos salto de línea
+            {
+                fprintf(fred, "%i\n", s[j][l]);
+            }else fprintf(fred, "%i,", s[j][l]);
+        }
+    }
+    fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red
     
     //Recombinamos nuestra red, cada conexión se recombinará con probabilidad p, inicializando a la vez la matriz de vecindad
 //    for(i=0;i<=N;i++)   //Cuidaete con esto, no está actualizado el tamaño de la matriz y esas cosas
@@ -58,7 +74,9 @@ int main(void)
 //        }
 //    }
 
-    //Con la red ya inicializada y recombinada procedemos a infectar un nodo 
+    //Con la red ya inicializada y recombinada procedemos a infectar un nodo
+    k=0;
+    l=0; 
     k=gsl_rng_uniform_int(tau,N)+1;
     l=gsl_rng_uniform_int(tau,N)+1; //Genero dos enteros aleatorios entre 1 y N que deciden la posición del nodo infectado
     s[k][l]=-1; 
@@ -103,9 +121,9 @@ int main(void)
                             aleatorioreal=gsl_rng_uniform(tau);   
                             if(aleatorioreal<=lambda) s[i][j-1]=2; 
                         }
+                        aleatorioreal=gsl_rng_uniform(tau);
+                        if(aleatorioreal<=mu) s[i][j]=1; //El nodo infectado se recupera con probabilidad mu
                     }
-                    aleatorioreal=gsl_rng_uniform(tau);
-                    if(aleatorioreal<=mu) s[i][j]=1; //El nodo infectado se recupera con probabilidad mu
                 }
             }
             for(i=1;i<=N;i++)
@@ -115,17 +133,26 @@ int main(void)
                     if(s[i][j]==2) s[i][j]=-1; //Volvemos a recorrer la matriz y transformamos los nodos que valen 2 en infectados
                 }
             }
+            //Ahora vamos a escribir en fichero la posición actual
+            for(j=1;j<=N;j++)
+            {
+                for(l=1;l<=N;l++)
+                {
+                    if(l==N) //Si es el último elemento de la fila hacemos salto de línea
+                    {
+                        fprintf(fred, "%i\n", s[j][l]);
+                    }else fprintf(fred, "%i,", s[j][l]);
+                }
+            }
+            fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red
         }
     }
-    
+    fclose(fred);
 
-
-
-
-
+    return 0;
 }
 
-
+//Ta todo puta madre, lo único que las condiciones periodicas no parecen funcionar, mirar bien que pasa
 
 
 
