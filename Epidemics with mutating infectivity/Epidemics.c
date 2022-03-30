@@ -13,6 +13,7 @@
 #define M=N*N //Esto es para la matriz de vecindad,que tendrá N² filas y 4 columnas
 #define p 0.1 //La probabilidad de recombinacion de la red
 #define chi 0.001 //La probabilidad de mutación de la enfermedad
+#define lambda 0.45
 #define mu 1 //La probabilidad de recuperación de un infectado
 #define tmax 1000 //Es el número de iteraciones que se realizarán
 #define Nsim 1 //Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
@@ -40,15 +41,6 @@ int main(void)
             s[i][j]=0; //En la matriz s, el valor 0 significará susceptible, el -1 infectado y el 1 recuperado
         }
     }
-
-    //Antes de nada, establecemos las condiciones periódicas
-    for(j=0;j<N;j++) //Hice una matriz (N+2)x(N+2) de forma que la matriz NxN es la verdadera y los puntos alrededor de esta se usan para crear las condiciones de contorno
-    {
-        s[0][j]=s[N][j];   
-        s[j][0]=s[j][N];
-        s[N+1][j]=s[1][j];
-        s[j][N+1]=s[j][1];
-    }
     
     //Recombinamos nuestra red, cada conexión se recombinará con probabilidad p, inicializando a la vez la matriz de vecindad
 //    for(i=0;i<=N;i++)   //Cuidaete con esto, no está actualizado el tamaño de la matriz y esas cosas
@@ -73,11 +65,58 @@ int main(void)
         //Ahora podemos iniciar los pasos de tiempo
         for(t=0;t<tmax;t++)
         {
-        //Cuidado, tengo que hacer la matriz de forma que se recorra desde i=1 a i<=N por como la construí
+            //Antes de nada, establecemos las condiciones periódicas
+            for(j=0;j<N;j++) //Hice una matriz (N+2)x(N+2) de forma que la matriz NxN es la verdadera y los puntos alrededor de esta se usan para crear las condiciones de contorno
+            {
+                s[0][j]=s[N][j];   
+                s[j][0]=s[j][N];
+                s[N+1][j]=s[1][j];
+                s[j][N+1]=s[j][1];
+            }
+            //Comienzo recorriendo la matriz para ver si cada nodo se infecta o no
+            for(i=1;i<=N;i++) //Cuidao, hay que recorrer la matriz siempre de 1 a N por como esta construida
+            {
+                for(j=1;j<=N;j++)
+                {
+                    if(s[i][j]==-1) //Si el nodo está infectado, entonces miro a sus vecinos a ver si se ponen malitos
+                    {
+                        if(s[i+1][j]==0) //si el nodo vecino es susceptible, tiramos los dados a ver si se infecta
+                        {
+                            aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1  
+                            if(aleatorioreal<=lambda) s[i+1][j]=2; //El valor 2 es un valor de espera, tras la iteración los nodos de valor dos se convertirán en -1, que si no luego los recién infectados infectan en esta iteración también
+                        }
+                        if(s[i][j+1]==0)
+                        {
+                            aleatorioreal=gsl_rng_uniform(tau);   
+                            if(aleatorioreal<=lambda) s[i][j+1]=2; 
+                        }
+                        if(s[i-1][j]==0)
+                        {
+                            aleatorioreal=gsl_rng_uniform(tau);   
+                            if(aleatorioreal<=lambda) s[i-1][j]=2; 
+                        }
+                        if(s[i][j-1]==0)
+                        {
+                            aleatorioreal=gsl_rng_uniform(tau);   
+                            if(aleatorioreal<=lambda) s[i][j-1]=2; 
+                        }
+                    }
+                    aleatorioreal=gsl_rng_uniform(tau);
+                    if(aleatorioreal<=mu) s[i][j]=1; //El nodo infectado se recupera con probabilidad mu
+                }
+            }
+            for(i=1;i<=N;i++)
+            {
+                for(j=1;j<=N;j++)
+                {
+                    if(s[i][j]==2) s[i][j]=-1; //Volvemos a recorrer la matriz y transformamos los nodos que valen 2 en infectados
+                }
+            }
 
         }
     }
-        
+    
+
 
 
 
