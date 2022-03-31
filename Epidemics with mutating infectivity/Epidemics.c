@@ -87,7 +87,7 @@ int main(void)
         for(t=0;t<tmax;t++)
         {
             //Antes de nada, establecemos las condiciones periódicas
-            for(j=0;j<N;j++) //Hice una matriz (N+2)x(N+2) de forma que la matriz NxN es la verdadera y los puntos alrededor de esta se usan para crear las condiciones de contorno
+            for(j=0;j<=N;j++) //Hice una matriz (N+2)x(N+2) de forma que la matriz NxN es la verdadera y los puntos alrededor de esta se usan para crear las condiciones de contorno
             {
                 s[0][j]=s[N][j];   
                 s[j][0]=s[j][N];
@@ -126,6 +126,13 @@ int main(void)
                     }
                 }
             }
+            for(j=1;j<=N;j++) //Ahora vamos a hacer que se apliquen las cond. contorno, infectamos los nodos correspondientes a traves de estas condiciones 
+            {
+                if(s[N+1][j]==2 && s[1][j]==0) s[1][j]=s[N+1][j];   //Si el nodo de contorno está infectado, también lo estará el nodo principal (si es susceptible)
+                if(s[j][N+1]==2 && s[j][1]==0) s[j][1]=s[j][N+1];
+                if(s[0][j]==2 && s[N][j]==0) s[N][j]=s[0][j];
+                if(s[j][0]==2 && s[j][N]==0) s[j][N]=s[j][0];
+            }
             for(i=1;i<=N;i++)
             {
                 for(j=1;j<=N;j++)
@@ -152,7 +159,7 @@ int main(void)
     return 0;
 }
 
-//Ta todo puta madre, lo único que las condiciones periodicas no parecen funcionar, mirar bien que pasa
+
 
 
 
