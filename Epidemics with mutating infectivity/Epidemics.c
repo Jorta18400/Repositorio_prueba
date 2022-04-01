@@ -23,10 +23,10 @@ int main(void)
     extern gsl_rng *tau; 
     int i,j,k,l,simulaciones; //Contadores enteros
     int M; //Sirve para definir el tamaño de la matriz de vecindad
-    M=N*N;
+    M=N*N; //M es el número de elementos de la matriz 
 
     int s[N+2][N+2]; //La matriz s será nuestra red o "mundo", donde cada nodo será un individuo
-    int vecindad[M][4];//En esta matriz se almacenan las conexiones entre nodos de la red(Cada fila es un nodo y las 4 columnas son sus conexiones)(Revisar si esto se puede hacer de forma mas eficiente)
+    int vecindad[M][4];//En esta matriz se almacenan las conexiones entre nodos de la red(Cada fila es un nodo y las 4 columnas definen sus conexiones)(Revisar si esto se puede hacer de forma mas eficiente)
     int aleatorioint; //Un número entero aleatorio
     double aleatorioreal; //Un número real aleatorio 
     int t; //Contador de tiempo
@@ -62,17 +62,41 @@ int main(void)
     fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red
     
     //Recombinamos nuestra red, cada conexión se recombinará con probabilidad p, inicializando a la vez la matriz de vecindad
-//    for(i=0;i<=N;i++)   //Cuidaete con esto, no está actualizado el tamaño de la matriz y esas cosas
-//    {
-//        for(j=0;j<4;j++)
-//        {
-//            aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1
-//            if(aleatorioreal<=p)
-//            {
-//                vecindad[i][j]=0; //Cuando vecindad valga 0 el nodo i corta su conexión j (conexión 1 la de arriba, 2 derecha, 3 abajo y 4 izquierda)
-//            }else vecindad[i][j]=1; //Si vecindad vale 1 entonces los nodos son vecinos      
-//        }
-//    }
+    //Primero inicializo la red con la vecindad predeterminada de la red cuadrada
+    for(i=0;i<M;i++)
+    {
+        for(j=0;j<4;j++)
+        {
+            vecindad[i][j]=1; //Si el nodo vale 1 es que es vecino, si vale 0 no lo es, cada fila es un nodo y las 4 columnas sus 4 conexiones en el orden de              
+        }                      //arriba,derecha,abajo,izquierda   
+    }
+    k=0;
+    for(i=0;i<M;i++)   
+    {
+        k=k+1; //Un contador pa saber en que fila estamos digamos 
+        for(j=0;j<4;j++) 
+        {
+            if(vecindad[i][j]=1) //un poco cutre pero bueno, creo que funcionará, revisar si se puede hacer mejor
+            {
+                aleatorioreal=gsl_rng_uniform(tau); //Real aleatorio entre 0 y 1
+                if(aleatorioreal<=p)
+                {
+                    vecindad[i][j]=0; 
+                    if(j==0 && i>=N) vecindad[i-N][2]=0; //Todos estos if son para indicar al vecino que ya no está conectado con el nodo s(i,j)
+                    else if(j==0) vecindad[N-i][2]=0; //si i es menor que N esta en la fila de arriba y hay que conectarlo con la de abajo
+                    if(j==1 && k==N)  
+                    {
+                        k=0;
+                        vecindad[i+1-N][3]=0; //Cuando estemos en la derecha del todo y se rompa el enlace derecho tenemos que irnos a la izquierda del todo
+                    }else if(j==1) vecindad[i+1][3]=0;
+                    if(j==2 && (M-i)<=N) vecindad[M-i-1][0]=0; //Aquí al estar abajo del todo nos vamos arriba del todo 
+                    else if(j==2) vecindad[i+N][0]=0;
+                    if(j==3 && k==1) vecindad[i+N-1][1]=0; //Estando en la izquierda del todo nos lleva a la derecha del todo
+                    else if(j==3) vecindad[i-1][1]=0;
+                } 
+            }
+        }
+    }
 
     //Con la red ya inicializada y recombinada procedemos a infectar un nodo
     k=0;
@@ -101,25 +125,55 @@ int main(void)
                 {
                     if(s[i][j]==-1) //Si el nodo está infectado, entonces miro a sus vecinos a ver si se ponen malitos
                     {
-                        if(s[i+1][j]==0) //si el nodo vecino es susceptible, tiramos los dados a ver si se infecta
+                        if(vecindad[N*i-N+j-1][0]==1) //Si sigue siendo vecino del predeterminado, miro a ese vecino, si no hago una tirada aleatoria a ver con quien se enlaza
                         {
-                            aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1  
-                            if(aleatorioreal<=lambda) s[i+1][j]=2; //El valor 2 es un valor de espera, tras la iteración los nodos de valor dos se convertirán en -1, que si no luego los recién infectados infectan en esta iteración también
+                            if(s[i+1][j]==0) //si el nodo vecino es susceptible, tiramos los dados a ver si se infecta
+                            {
+                                aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1  
+                                if(aleatorioreal<=lambda) s[i+1][j]=2; //El valor 2 es un valor de espera, tras la iteración los nodos de valor dos se convertirán en -1, que si no luego los recién infectados infectan en esta iteración también
+                            }
+                        }else if(vecindad[N*i-N+j-1][0]==0) //Si la conexión estaba rota, le buscamos un vecino nuevo que no sea él mismo
+                        {
+                            aleatorioreal=gsl_rng_uniform(tau);
+                            if(aleatorioreal<=p) 
+                            {
+                                k=i;
+                                l=j;
+                                aleatorioreal=gsl_rng_uniform(tau);
+                                while(k==i && l==j)  //generamos una posición aleatoria que no sea el propio nodo
+                                {
+                                k=gsl_rng_uniform_int(tau,N)+1; //Genera aleatorio entre 1 y N
+                                l=gsl_rng_uniform_int(tau,N)+1;
+                                }
+                                if(s[k][l]==0)
+                                {
+                                if(aleatorioreal<=lambda) s[k][l]=2;
+                                } //No termino de ver esto ¿Como aviso al otro nodo de que esta conectado a este?s
+                            }
                         }
-                        if(s[i][j+1]==0)
+                        if(vecindad[N*i-N+j-1][1]==1)
                         {
-                            aleatorioreal=gsl_rng_uniform(tau);   
-                            if(aleatorioreal<=lambda) s[i][j+1]=2; 
+                            if(s[i][j+1]==0)
+                            {
+                                aleatorioreal=gsl_rng_uniform(tau);   
+                                if(aleatorioreal<=lambda) s[i][j+1]=2; 
+                            }
                         }
-                        if(s[i-1][j]==0)
+                        if(vecindad[N*i-N+j-1][2]==1)
                         {
-                            aleatorioreal=gsl_rng_uniform(tau);   
-                            if(aleatorioreal<=lambda) s[i-1][j]=2; 
+                            if(s[i-1][j]==0)
+                            {
+                                aleatorioreal=gsl_rng_uniform(tau);   
+                                if(aleatorioreal<=lambda) s[i-1][j]=2; 
+                            }
                         }
-                        if(s[i][j-1]==0)
+                        if(vecindad[N*i-N+j-1][2]==1)
                         {
-                            aleatorioreal=gsl_rng_uniform(tau);   
-                            if(aleatorioreal<=lambda) s[i][j-1]=2; 
+                            if(s[i][j-1]==0)
+                            {
+                                aleatorioreal=gsl_rng_uniform(tau);   
+                                if(aleatorioreal<=lambda) s[i][j-1]=2; 
+                            }
                         }
                         aleatorioreal=gsl_rng_uniform(tau);
                         if(aleatorioreal<=mu) s[i][j]=1; //El nodo infectado se recupera con probabilidad mu
