@@ -59,11 +59,59 @@ int main(void)
         for(i=0;i<M;i++)
         {
             x[i]=0; //0 es susceptible, +1 es Removed y -1 infectado, las mutaciones tendrán distintos números negativos
+        }
+        for(i=0;i<M;i++)
+        {
+            x[i]=0; //0 es susceptible, 1 es Removed y -1 infectado, las mutaciones tendrán distintos valores negativos
             for(j=0;j<M;j++) //Voy a incializar la matriz de adyacencia como si fuera una red cuadrada inicialmente, luego cambiaré algunas conexiones
-            {
-                
+            {   
+                if(i%N==0) //Los nodos divisibles entre N son los del borde izquierdo, 0,N,2N...
+                {
+                    if(j==i+N-1)
+                    {
+                        A[i][j]=1; //Básicamente los nodos de la izquierda del todo se conecta a los de la derecha del todo 
+                        A[j][i]=1; //La matriz A es simétrica
+                    } 
+                }else if(j=i-1)
+                {
+                    A[i][j]=1; //Si el nodo no está en el borde izquierdo el nodo de su izquierda estará conectado
+                    A[j][i]=1;
+                } 
+                if(i<N) //Los nodos de arriba del todo
+                {
+                    if(j==i+M-N)
+                    {
+                        A[i][j]=1; //Los nodos de arriba del todo se conectan con los de abajo del todo
+                        A[j][i]=1;
+                    } 
+                }else if(j==i-N)
+                {
+                    A[i][j]=1; //Si el nodo no está arriba del todo estará conectado al nodo que tenga encima
+                    A[j][i]=1;
+                } 
+//                if(i==N-1) //Nodo a la derecha del todo
+//                {
+//                    if(j==i-N+1) A[i][j]=1; //Conectamos los de la derecha del todo con los de la izquierda del todo
+//                }else if(j==i+1) A[i][j]=1; 
+//                if(i>=(M-N))//Nodos de abajo del todo
+//                {
+//                    if(j==i+N-M) A[i][j]=1; 
+//                }else if(j==i+N) A[i][j]=1; 
+                if(A[i][j]!=1) A[i][j]=0; //Si después de tol follón el A[i][j] no es 1, lo hacemos 0
             }
         }
+        for(j=0;j<M;j++) //PRUEBA PA VER SI A INICIALIZA BIEN
+        {
+            for(l=0;l<M;l++)
+            {
+                if(l==M) //Si es el último elemento de la fila hacemos salto de línea
+                {
+                    fprintf(fred, "%i\n", A[j][l]);
+                }else fprintf(fred, "%i,", A[j][l]);
+            }
+        }
+        fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red 
+
         //Cada simulación cambiamos la semilla para generar números aleatorios distintos cada vez
         int semilla=rand()%990001+1000; //genera una semilla aleatoria entre 10000 y 1000000 
         tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
