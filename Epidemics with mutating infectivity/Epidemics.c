@@ -9,7 +9,7 @@
 #include<math.h>
 #include"gsl_rng.h"
 
-#define N 20 //El tamaño de la red (NxN)
+#define N 3 //El tamaño de la red (NxN)
 #define p 0.1 //La probabilidad de recombinacion de la red
 #define chi 0.001 //La probabilidad de mutación de la enfermedad
 #define lambda 0.55 //La probabilidad de infectarse que tiene un nodo si su vecino esta infectado
@@ -23,7 +23,7 @@ int main(void)
     int i,j,k,l,simulaciones; //Contadores enteros
     int M; //M es N²
     M=N*N;
-    int x[M], A[M][M]; //El vector x contiene todos los nodos y su estado, la matriz A es la matriz de adyacencia, contiene la relación entre los nodos
+    int x[M],xprima[M], A[M][M]; //El vector x contiene todos los nodos y su estado, la matriz A es la matriz de adyacencia, contiene la relación entre los nodos
     int aleatorioint; //Un número entero aleatorio
     double aleatorioreal; //Un número real aleatorio 
     int sigo; //Decide si se sigue contando el tiempo
@@ -89,7 +89,7 @@ int main(void)
                     A[i][j]=1; //Si el nodo no está arriba del todo estará conectado al nodo que tenga encima
                     A[j][i]=1;
                 } 
-//                if(i==N-1) //Nodo a la derecha del todo
+//                if(i==N-1) //Nodo a la derecha del todo---Quitamos esta parte porque en principio la matriz A es simetrica asi que con lo añadido arriba ya se completa
 //                {
 //                    if(j==i-N+1) A[i][j]=1; //Conectamos los de la derecha del todo con los de la izquierda del todo
 //                }else if(j==i+1) A[i][j]=1; 
@@ -97,9 +97,11 @@ int main(void)
 //                {
 //                    if(j==i+N-M) A[i][j]=1; 
 //                }else if(j==i+N) A[i][j]=1; 
+
                 if(A[i][j]!=1) A[i][j]=0; //Si después de tol follón el A[i][j] no es 1, lo hacemos 0
             }
         }
+        
         for(j=0;j<M;j++) //PRUEBA PA VER SI A INICIALIZA BIEN
         {
             for(l=0;l<M;l++)
@@ -119,71 +121,43 @@ int main(void)
 
         //Con la red ya inicializada y recombinada procedemos a infectar un nodo
         k=0;
-        k=gsl_rng_uniform_int(tau,M); //Genero dos enteros aleatorios entre 0 y M-1 que deciden la posición del nodo infectado
+        k=gsl_rng_uniform_int(tau,M); //Genero un entero aleatorio entre 0 y M-1 que decide la posición del nodo infectado
         x[k]=-1;
+
+        //Ahora copio x en xprima, que será el vector donde hagamos las modificaciones
+        for(i=0;i<M;i++)
+        {
+            xprima[i]=x[i];
+        }
 
         //Ahora podemos iniciar los pasos de tiempo
         sigo=1; //Con esta variable entera decido cuando se acaba esta simulación
         while(sigo==1)
         {
             I=0; //Inicializo a 0 I en cada iteración porque es el número de infectados solo en la iteración
-            //Antes de nada, establecemos las condiciones periódicas
-            for(j=0;j<=N;j++) //Comenzaré con una red 
-            {
-                s[0][j]=s[N][j];   
-                s[j][0]=s[j][N];
-                s[N+1][j]=s[1][j];
-                s[j][N+1]=s[j][1];
-            }
+
             //Comienzo recorriendo la matriz para ver si cada nodo se infecta o no
-            for(i=1;i<=N;i++) //Cuidao, hay que recorrer la matriz siempre de 1 a N por como esta construida
+            for(i=0;i<M;i++) 
             {
-                for(j=1;j<=N;j++)
+                if(x[i]==-1) //Si resulta que el nodo está infectado, tengo que mirar sus vecinos y tirar los dados a ver si se infectan
                 {
-                    if(s[i][j]==-1) //Si el nodo está infectado, entonces miro a sus vecinos a ver si se ponen malitos
+                    for(j=0;j<M;j++)
                     {
-                        if(s[i+1][j]==0) //si el nodo vecino es susceptible, tiramos los dados a ver si se infecta
+                        if(A[i][j]==1 && x[j]==0)
                         {
                             aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1  
-                            if(aleatorioreal<=lambda) s[i+1][j]=2; //El valor 2 es un valor de espera, tras la iteración los nodos de valor dos se convertirán en -1, que si no luego los recién infectados infectan en esta iteración también
+                            if(aleatorioreal<=lambda)
+                            {
+                                xprima[j]=-1;
+                                I++;
+                            }
                         }
-                        if(s[i][j+1]==0)
-                        {
-                            aleatorioreal=gsl_rng_uniform(tau);   
-                            if(aleatorioreal<=lambda) s[i][j+1]=2; 
-                        }
-                        if(s[i-1][j]==0)
-                        {
-                            aleatorioreal=gsl_rng_uniform(tau);   
-                            if(aleatorioreal<=lambda) s[i-1][j]=2; 
-                        }
-                        if(s[i][j-1]==0)
-                        {
-                            aleatorioreal=gsl_rng_uniform(tau);   
-                            if(aleatorioreal<=lambda) s[i][j-1]=2; 
-                        }
-                        aleatorioreal=gsl_rng_uniform(tau);
-                        if(aleatorioreal<=mu) s[i][j]=1; //El nodo infectado se recupera con probabilidad mu
                     }
                 }
-            }
-            for(j=1;j<=N;j++) //Ahora vamos a hacer que se apliquen las cond. contorno, infectamos los nodos correspondientes a traves de estas condiciones 
-            {
-                if(s[N+1][j]==2 && s[1][j]==0) s[1][j]=s[N+1][j];   //Si el nodo de contorno está infectado, también lo estará el nodo principal (si es susceptible)
-                if(s[j][N+1]==2 && s[j][1]==0) s[j][1]=s[j][N+1];
-                if(s[0][j]==2 && s[N][j]==0) s[N][j]=s[0][j];
-                if(s[j][0]==2 && s[j][N]==0) s[j][N]=s[j][0];
             }
             for(i=1;i<=N;i++)
             {
-                for(j=1;j<=N;j++)
-                {
-                    if(s[i][j]==2) 
-                    {
-                    s[i][j]=-1; //Volvemos a recorrer la matriz y transformamos los nodos que valen 2 en infectados
-                    I++;
-                    }
-                }
+                x[i]=xprima[i]; //Hacemos efectivos los cambios de este paso temporal copiando xprima en x
             }
             Rmedia=Rmedia+I;
             if(I==0)
