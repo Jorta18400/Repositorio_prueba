@@ -1,7 +1,6 @@
 /////////////////////////////////////////////////////////////////////////
 // Programa que modela la propagación de epidemias con mutaciones,     //
-// se harán versiones del programa donde se tengan                     //
-// en cuenta muertes, duración de la enfermedad causada y vacunaciones.//
+//                                                                     //
 /////////////////////////////////////////////////////////////////////////
 
 #include<stdlib.h>
@@ -9,12 +8,12 @@
 #include<math.h>
 #include"gsl_rng.h"
 
-#define N 3 //El tamaño de la red (NxN)
+#define N 20 //El tamaño de la red (NxN)
 #define p 0.1 //La probabilidad de recombinacion de la red
 #define chi 0.001 //La probabilidad de mutación de la enfermedad
 #define lambda 0.55 //La probabilidad de infectarse que tiene un nodo si su vecino esta infectado
 #define mu 1 //La probabilidad de recuperación de un infectado
-#define Nsim 1000 //Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
+#define Nsim 1 //Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
 
 int main(void)
@@ -31,24 +30,12 @@ int main(void)
     int I; //Esta es la cantidad de nodos infectados en la iteración dada 
     FILE *fred; //Fichero donde se guarda la red en cada iteración
     FILE *fresultados; //Fichero donde se escriben los resultados de las simulaciones 
+    int s[N][N]; //La red como tal
 
     srand(time(NULL));
 
     fred=fopen("Red.txt", "w"); //Abro el fichero
     fresultados=fopen("Resultados.txt", "w");
-
-    //Ahora vamos a escribir en fichero la posición inicial
-//    for(j=1;j<=N;j++)
-//    {
-//        for(l=1;l<=N;l++)
-//        {
-//            if(l==N) //Si es el último elemento de la fila hacemos salto de línea
-//            {
-//                fprintf(fred, "%i\n", s[j][l]);
-//            }else fprintf(fred, "%i,", s[j][l]);
-//        }
-//    }
-//    fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red 
 
     Rmedia=Nsim; //Lo inicializo como Nsim porque en cada simulación se infecta un nodo aleatorio para empezar y no lo estoy contando
     simulaciones=0;
@@ -67,52 +54,32 @@ int main(void)
             {   
                 if(i%N==0) //Los nodos divisibles entre N son los del borde izquierdo, 0,N,2N...
                 {
-                    if(j==i+N-1)
+                    if(j==(i+N-1))
                     {
                         A[i][j]=1; //Básicamente los nodos de la izquierda del todo se conecta a los de la derecha del todo 
                         A[j][i]=1; //La matriz A es simétrica
                     } 
-                }else if(j=i-1)
+                }else if(j==(i-1))
                 {
                     A[i][j]=1; //Si el nodo no está en el borde izquierdo el nodo de su izquierda estará conectado
                     A[j][i]=1;
                 } 
                 if(i<N) //Los nodos de arriba del todo
                 {
-                    if(j==i+M-N)
+                    if(j==(i+M-N))
                     {
                         A[i][j]=1; //Los nodos de arriba del todo se conectan con los de abajo del todo
                         A[j][i]=1;
                     } 
-                }else if(j==i-N)
+                }else if(j==(i-N))
                 {
                     A[i][j]=1; //Si el nodo no está arriba del todo estará conectado al nodo que tenga encima
                     A[j][i]=1;
                 } 
-//                if(i==N-1) //Nodo a la derecha del todo---Quitamos esta parte porque en principio la matriz A es simetrica asi que con lo añadido arriba ya se completa
-//                {
-//                    if(j==i-N+1) A[i][j]=1; //Conectamos los de la derecha del todo con los de la izquierda del todo
-//                }else if(j==i+1) A[i][j]=1; 
-//                if(i>=(M-N))//Nodos de abajo del todo
-//                {
-//                    if(j==i+N-M) A[i][j]=1; 
-//                }else if(j==i+N) A[i][j]=1; 
-
                 if(A[i][j]!=1) A[i][j]=0; //Si después de tol follón el A[i][j] no es 1, lo hacemos 0
+                if(i==j) A[i][j]=0; //Por si acaso nos aseguramos de que la diagonal sea 0, pues un núcleo siempre está desconectado de sí mismo
             }
         }
-        
-        for(j=0;j<M;j++) //PRUEBA PA VER SI A INICIALIZA BIEN
-        {
-            for(l=0;l<M;l++)
-            {
-                if(l==M) //Si es el último elemento de la fila hacemos salto de línea
-                {
-                    fprintf(fred, "%i\n", A[j][l]);
-                }else fprintf(fred, "%i,", A[j][l]);
-            }
-        }
-        fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red 
 
         //Cada simulación cambiamos la semilla para generar números aleatorios distintos cada vez
         int semilla=rand()%990001+1000; //genera una semilla aleatoria entre 10000 y 1000000 
@@ -153,29 +120,41 @@ int main(void)
                             }
                         }
                     }
+                    aleatorioreal=gsl_rng_uniform(tau);  
+                    if(aleatorioreal<=mu) xprima[i]=1; //El nodo se cura con probabilidad mu
                 }
             }
-            for(i=1;i<=N;i++)
+            for(i=1;i<M;i++)
             {
                 x[i]=xprima[i]; //Hacemos efectivos los cambios de este paso temporal copiando xprima en x
             }
+            //Como prueba voy a escribir la matriz s y la escribo en fichero a ver que esta pasando, no puede haber mas infectados que nodos
+            for(i=0;i<N;i++)
+            {
+                for(j=0;j<N;j++)
+                {
+                    s[i][j]=x[N*i+j];
+                }
+            }
+
+            //Ahora vamos a escribir en fichero la posición inicial
+            for(j=0;j<N;j++)
+            {
+                for(l=0;l<N;l++)
+                {
+                    if(l==(N-1)) //Si es el último elemento de la fila hacemos salto de línea
+                    {
+                        fprintf(fred, "%i\n", s[j][l]);
+                    }else fprintf(fred, "%i,", s[j][l]);
+                }
+            }
+            fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red 
+
             Rmedia=Rmedia+I;
             if(I==0)
             {
                 sigo=0; //Si no hubo infectados esta iteración damos por finalizada la simulación
             }
-            //Ahora vamos a escribir en fichero la posición actual
-//            for(j=1;j<=N;j++)
-//            {
-//                for(l=1;l<=N;l++)
-//                {
-//                    if(l==N) //Si es el último elemento de la fila hacemos salto de línea
-//                    {
-//                        fprintf(fred, "%i\n", s[j][l]);
-//                    }else fprintf(fred, "%i,", s[j][l]);
-//                }
-//            }
-//            fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red
         }
     }
     Rmedia=Rmedia/(Nsim*1.0);

@@ -1,1 +1,1 @@
-El número medio de infectados por simulación fue: 318.617000
+El número medio de infectados por simulación fue: 321.680000
