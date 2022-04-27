@@ -13,7 +13,7 @@
 #define chi 0.001 //La probabilidad de mutación de la enfermedad
 #define lambda 0.55 //La probabilidad de infectarse que tiene un nodo si su vecino esta infectado
 #define mu 1 //La probabilidad de recuperación de un infectado
-#define Nsim 1 //Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
+#define Nsim 1000 //Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
 
 int main(void)
@@ -113,42 +113,43 @@ int main(void)
                         if(A[i][j]==1 && x[j]==0)
                         {
                             aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1  
-                            if(aleatorioreal<=lambda)
-                            {
-                                xprima[j]=-1;
-                                I++;
-                            }
+                            if(aleatorioreal<=lambda) xprima[j]=-1;
                         }
                     }
                     aleatorioreal=gsl_rng_uniform(tau);  
-                    if(aleatorioreal<=mu) xprima[i]=1; //El nodo se cura con probabilidad mu
+                    if(aleatorioreal<=mu)
+                    {
+                        I++; //Contamos aquí los infectados, así nos aseguramos de contar solo 1 vez cada uno
+                        xprima[i]=1;
+                    }  //El nodo se cura con probabilidad mu
                 }
             }
-            for(i=1;i<M;i++)
+            for(i=0;i<M;i++)
             {
                 x[i]=xprima[i]; //Hacemos efectivos los cambios de este paso temporal copiando xprima en x
             }
+
             //Como prueba voy a escribir la matriz s y la escribo en fichero a ver que esta pasando, no puede haber mas infectados que nodos
-            for(i=0;i<N;i++)
-            {
-                for(j=0;j<N;j++)
-                {
-                    s[i][j]=x[N*i+j];
-                }
-            }
+//            for(i=0;i<N;i++)
+//            {
+//                for(j=0;j<N;j++)
+//                {
+//                    s[i][j]=x[N*i+j];
+//                }
+//            }
 
             //Ahora vamos a escribir en fichero la posición inicial
-            for(j=0;j<N;j++)
-            {
-                for(l=0;l<N;l++)
-                {
-                    if(l==(N-1)) //Si es el último elemento de la fila hacemos salto de línea
-                    {
-                        fprintf(fred, "%i\n", s[j][l]);
-                    }else fprintf(fred, "%i,", s[j][l]);
-                }
-            }
-            fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red 
+//            for(j=0;j<N;j++)
+//            {
+//                for(l=0;l<N;l++)
+//                {
+//                   if(l==(N-1)) //Si es el último elemento de la fila hacemos salto de línea
+//                    {
+//                        fprintf(fred, "%i\n", s[j][l]);
+//                    }else fprintf(fred, "%i,", s[j][l]);
+//                }
+//           }
+//           fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red 
 
             Rmedia=Rmedia+I;
             if(I==0)
