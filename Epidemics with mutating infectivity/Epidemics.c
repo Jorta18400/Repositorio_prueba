@@ -24,7 +24,8 @@ int main(void)
     int aleatorioint; //Un número entero aleatorio
     double aleatorioreal; //Un número real aleatorio 
     int sigo; //Decide si se sigue contando el tiempo
-    double Rmedia; //Número medio de infectados por simulación
+    double Rmedia, Rmediacuadrado; //Número medio de infectados por simulación
+    double desviacion, error; //la desviación típica para calcular el error
     int I; //Esta es la cantidad de nodos infectados en la iteración dada 
     FILE *fred; //Fichero donde se guarda la red en cada iteración
     FILE *fresultados; //Fichero donde se escriben los resultados de las simulaciones 
@@ -38,11 +39,12 @@ int main(void)
     fred=fopen("Red.txt", "w"); //Abro el fichero
     fresultados=fopen("Resultados.txt", "w");
 
-    fprintf(fresultados, "Lambda\tRmedia\n"); 
+    fprintf(fresultados, "Lambda\t\tRmedia(<x>)\tError\t<x²>\n"); 
 
     while(lambda<1.0) //Este bucle aumenta lambda en cada ejecución y así hacemos un barrido
     {
-        Rmedia=Nsim; //Lo inicializo como Nsim porque en cada simulación se infecta un nodo aleatorio para empezar y no lo estoy contando
+        Rmedia=0; 
+        Rmediacuadrado=0; //Inicializamos los valores de los contadores de infectados a 0
         simulaciones=0;
         for(simulaciones=0;simulaciones<Nsim;simulaciones++) //Número de simulaciones que se llevarán a cabo
         {
@@ -120,12 +122,9 @@ int main(void)
                                 if(aleatorioreal<=lambda) xprima[j]=-1;
                             }
                         }
-                        //aleatorioreal=gsl_rng_uniform(tau);  //Mas eficiente quitarlo
-                        //if(aleatorioreal<=mu)
-                        //{
+
                             I++; //Contamos aquí los infectados, así nos aseguramos de contar solo 1 vez cada uno
-                            xprima[i]=1;
-                        //}  //El nodo se cura con probabilidad mu
+                            xprima[i]=1; //Al final del paso el nodo queda en estado R
                     }
                 }
                 for(i=0;i<M;i++)
@@ -133,7 +132,7 @@ int main(void)
                     x[i]=xprima[i]; //Hacemos efectivos los cambios de este paso temporal copiando xprima en x
                 }
 
-                //Como prueba voy a escribir la matriz s y la escribo en fichero a ver que esta pasando, no puede haber mas infectados que nodos
+                //Como prueba voy a escribir la matriz s y la escribo en fichero 
     //            for(i=0;i<N;i++)
     //            {
     //                for(j=0;j<N;j++)
@@ -155,16 +154,22 @@ int main(void)
     //           }
     //           fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red 
 
-                Rmedia=Rmedia+I;
+                Rmedia=Rmedia+I; //Sumo el número de infectados en el paso temporal al contador
+                Rmediacuadrado=Rmediacuadrado+(I*I);
                 if(I==0)
                 {
                     sigo=0; //Si no hubo infectados esta iteración damos por finalizada la simulación
                 }
             }
         }
-        Rmedia=Rmedia/(Nsim*1.0);
+        desviacion=sqrt( (Rmediacuadrado/Nsim)-(Rmedia*Rmedia)/(Nsim*Nsim) ); //Calculo la desviación típica para sacar el error
+        error=desviacion/sqrt(Nsim);
+
+        Rmedia=Rmedia/Nsim; //Esto sería ya <x> que es lo que represento en el archivo
+        Rmediacuadrado=Rmediacuadrado/Nsim; //Esto sería <x²>
+
         //Ahora vamos a escribir en el fichero cuantos removed hubo de media en cada simulación
-        fprintf(fresultados, "%lf\t%lf\n", lambda, Rmedia); 
+        fprintf(fresultados, "%lf\t%lf\t%lf\t%lf\n", lambda, Rmedia, error, Rmediacuadrado); 
 
         if(lambda<0.4)
         {
