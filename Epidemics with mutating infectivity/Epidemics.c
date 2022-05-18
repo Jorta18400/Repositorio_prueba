@@ -62,7 +62,7 @@ int main(void)
                 x[i]=0; //0 es susceptible, 1 es Removed y -1 infectado, las mutaciones tendrán distintos valores negativos
             }
 
-            if(reconfigurar==0 || reconfigurar%10==0) //reconfiguro la matriz la primera vez y luego cada 10 iteraciones
+            if(reconfigurar==0 || reconfigurar%1==0) //reconfiguro la matriz la primera vez y luego cada x iteraciones
             {
                 //Inicializamos la matriz cuadrada regular en la que, inicialmente, todos los nodos son susceptibles
                 for(i=0;i<M;i++)
@@ -101,12 +101,12 @@ int main(void)
                 //Ahora que tenemos la matriz cuadrada, vamos a recablearla para formar una Watts-Strogatz
                 for(i=0;i<M;i++)
                 {
-                    for(j=0;j<M;j++)
+                    for(j=(i+1);j<M;j++) //Como la matriz A es simétrica no necesito barrerla entera
                     {
                         if(A[i][j]==1) //Si hay una conexión establecida, vemos si la rompemos para formar otra
                         {
                             aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1 
-                            if(aleatorioreal<p)
+                            if(aleatorioreal<=p)
                             {
                                 A[i][j]=0; //Rompemos el enlace que había 
 
@@ -114,7 +114,7 @@ int main(void)
                                 while(l==1) //Este bucle trata de sustituir la conexión hasta que se consiga
                                 {
                                     k=gsl_rng_uniform_int(tau,M); //Genero un entero aleatorio entre 0 y M-1 que decide la posición del nodo que enlazaremos
-                                    if(k!=j) //el nuevo nodo debe ser distinto del de antes 
+                                    if(k!=j && k!=i) //el nuevo nodo debe ser distinto del de antes y no ser el propio nodo (no queremos A[i][i])
                                     {
                                         if(A[i][k]==0) //El nuevo nodo al que nos conectaremos no puede estar ya conectado
                                         {
