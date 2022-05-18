@@ -8,8 +8,6 @@
 #include"gsl_rng.h"
 
 #define N 20 //El tamaño de la red (NxN)
-#define p 0.1 //La probabilidad de recombinacion de la red
-#define chi 0.001 //La probabilidad de mutación de la enfermedad
 #define mu 1 //La probabilidad de recuperación de un infectado
 #define Nsim 1000 //Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
@@ -32,7 +30,7 @@ int main(void)
     int s[N][N]; //La red como tal
     double lambda; //La probabilidad de infectarse que tiene un nodo si su vecino esta infectado
 
-    lambda=0.1; //Valor inicial de lambda
+    lambda=0.1; //Valor iniial de lambda
 
     srand(time(NULL));
 
@@ -131,26 +129,26 @@ int main(void)
                 }
 
                 //Como prueba voy a escribir la matriz s y la escribo en fichero 
-    //            for(i=0;i<N;i++)
-    //            {
-    //                for(j=0;j<N;j++)
-    //                {
-    //                    s[i][j]=x[N*i+j];
-    //                }
-    //            }
+//                for(i=0;i<N;i++)
+//                {
+//                    for(j=0;j<N;j++)
+//                    {
+//                        s[i][j]=x[N*i+j];
+//                    }
+//                }
 
                 //Ahora vamos a escribir en fichero la posición inicial
-    //            for(j=0;j<N;j++)
-    //            {
-    //                for(l=0;l<N;l++)
-    //                {
-    //                   if(l==(N-1)) //Si es el último elemento de la fila hacemos salto de línea
-    //                    {
-    //                        fprintf(fred, "%i\n", s[j][l]);
-    //                    }else fprintf(fred, "%i,", s[j][l]);
-    //                }
-    //           }
-    //           fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red 
+//                for(j=0;j<N;j++)
+//                {
+//                    for(l=0;l<N;l++)
+//                    {
+//                       if(l==(N-1)) //Si es el último elemento de la fila hacemos salto de línea
+//                        {
+//                            fprintf(fred, "%i\n", s[j][l]);
+//                        }else fprintf(fred, "%i,", s[j][l]);
+//                    }
+//               }
+//               fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red 
 
                 Itotal=Itotal+I; //Sumo el número de infectados en el paso temporal al contador
 

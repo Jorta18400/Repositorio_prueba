@@ -23,7 +23,7 @@ int main(void)
     int x[M],xprima[M], A[M][M]; //El vector x contiene todos los nodos y su estado, la matriz A es la matriz de adyacencia, contiene la relación entre los nodos
     int aleatorioint; //Un número entero aleatorio
     double aleatorioreal; //Un número real aleatorio 
-    int sigo; //Decide si se sigue contando el tiempo
+    int sigo, reconfigurar; //Decide si se sigue contando el tiempo o se reconfiguran los enlaces 
     double Rmedia, Rmediacuadrado; //Número medio de infectados por simulación
     double desviacion, error; //la desviación típica para calcular el error
     int I, Itotal; //Esta es la cantidad de nodos infectados en la iteración dada 
@@ -46,49 +46,91 @@ int main(void)
         Rmedia=0; 
         Rmediacuadrado=0; //Inicializamos los valores de los contadores de infectados a 0
         simulaciones=0;
+        reconfigurar=0;
         for(simulaciones=0;simulaciones<Nsim;simulaciones++) //Número de simulaciones que se llevarán a cabo
         {
-            Itotal=0; //Este es el número total de infectados en la simulación
-
-            //Inicializamos la matriz en la que, inicialmente, todos los nodos son susceptibles
-            for(i=0;i<M;i++)
-            {
-                x[i]=0; //0 es susceptible, 1 es Removed y -1 infectado, las mutaciones tendrán distintos valores negativos
-                for(j=0;j<M;j++) //Voy a incializar la matriz de adyacencia como si fuera una red cuadrada inicialmente, luego cambiaré algunas conexiones
-                {   
-                    if(i%N==0) //Los nodos divisibles entre N son los del borde izquierdo, 0,N,2N...
-                    {
-                        if(j==(i+N-1))
-                        {
-                            A[i][j]=1; //Básicamente los nodos de la izquierda del todo se conecta a los de la derecha del todo 
-                            A[j][i]=1; //La matriz A es simétrica
-                        } 
-                    }else if(j==(i-1))
-                    {
-                        A[i][j]=1; //Si el nodo no está en el borde izquierdo el nodo de su izquierda estará conectado
-                        A[j][i]=1;
-                    } 
-                    if(i<N) //Los nodos de arriba del todo
-                    {
-                        if(j==(i+M-N))
-                        {
-                            A[i][j]=1; //Los nodos de arriba del todo se conectan con los de abajo del todo
-                            A[j][i]=1;
-                        } 
-                    }else if(j==(i-N))
-                    {
-                        A[i][j]=1; //Si el nodo no está arriba del todo estará conectado al nodo que tenga encima
-                        A[j][i]=1;
-                    } 
-                    if(A[i][j]!=1) A[i][j]=0; //Si después de tol follón el A[i][j] no es 1, lo hacemos 0
-                    if(i==j) A[i][j]=0; //Por si acaso nos aseguramos de que la diagonal sea 0, pues un núcleo siempre está desconectado de sí mismo
-                }
-            }
-
             //Cada simulación cambiamos la semilla para generar números aleatorios distintos cada vez
             int semilla=rand()%990001+1000; //genera una semilla aleatoria entre 10000 y 1000000 
             tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
             gsl_rng_set(tau,semilla); 
+
+            Itotal=0; //Este es el número total de infectados en la simulación
+
+            //Inicio el vector de nodos donde todos los nodos son susceptibles al principio
+            for(i=0;i<M;i++)
+            {
+                x[i]=0; //0 es susceptible, 1 es Removed y -1 infectado, las mutaciones tendrán distintos valores negativos
+            }
+
+            if(reconfigurar==0 || reconfigurar%10==0) //reconfiguro la matriz la primera vez y luego cada 10 iteraciones
+            {
+                //Inicializamos la matriz cuadrada regular en la que, inicialmente, todos los nodos son susceptibles
+                for(i=0;i<M;i++)
+                {
+                    for(j=0;j<M;j++) //Voy a incializar la matriz de adyacencia como si fuera una red cuadrada inicialmente, luego cambiaré algunas conexiones
+                    {   
+                        if(i%N==0) //Los nodos divisibles entre N son los del borde izquierdo, 0,N,2N...
+                        {
+                            if(j==(i+N-1))
+                            {
+                                A[i][j]=1; //Básicamente los nodos de la izquierda del todo se conecta a los de la derecha del todo 
+                                A[j][i]=1; //La matriz A es simétrica
+                            } 
+                        }else if(j==(i-1))
+                        {
+                            A[i][j]=1; //Si el nodo no está en el borde izquierdo el nodo de su izquierda estará conectado
+                            A[j][i]=1;
+                        } 
+                        if(i<N) //Los nodos de arriba del todo
+                        {
+                            if(j==(i+M-N))
+                            {
+                                A[i][j]=1; //Los nodos de arriba del todo se conectan con los de abajo del todo
+                                A[j][i]=1;
+                            } 
+                        }else if(j==(i-N))
+                        {
+                            A[i][j]=1; //Si el nodo no está arriba del todo estará conectado al nodo que tenga encima
+                            A[j][i]=1;
+                        } 
+                        if(A[i][j]!=1) A[i][j]=0; //Si después de tol follón el A[i][j] no es 1, lo hacemos 0
+                        if(i==j) A[i][j]=0; //Por si acaso nos aseguramos de que la diagonal sea 0, pues un núcleo siempre está desconectado de sí mismo
+                    }
+                }
+
+                //Ahora que tenemos la matriz cuadrada, vamos a recablearla para formar una Watts-Strogatz
+                for(i=0;i<M;i++)
+                {
+                    for(j=0;j<M;j++)
+                    {
+                        if(A[i][j]==1) //Si hay una conexión establecida, vemos si la rompemos para formar otra
+                        {
+                            aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1 
+                            if(aleatorioreal<p)
+                            {
+                                A[i][j]=0; //Rompemos el enlace que había 
+
+                                l=1;
+                                while(l==1) //Este bucle trata de sustituir la conexión hasta que se consiga
+                                {
+                                    k=gsl_rng_uniform_int(tau,M); //Genero un entero aleatorio entre 0 y M-1 que decide la posición del nodo que enlazaremos
+                                    if(k!=j) //el nuevo nodo debe ser distinto del de antes 
+                                    {
+                                        if(A[i][k]==0) //El nuevo nodo al que nos conectaremos no puede estar ya conectado
+                                        {
+                                            A[i][k]=1;
+                                            A[k][i]=1; //Si se cumplen las condiciones establecemos conexión y finalizamos el bucle
+                                            l=0;
+                                        }
+                                    }
+                                    //Si no se cumplieron los ifs se pasan de largo y se vuelve a intentar con otro k
+                                }
+                        
+                            }
+                        }
+                    }
+                }
+            }
 
             //Con la red ya inicializada y recombinada procedemos a infectar un nodo
             k=0;
@@ -150,7 +192,7 @@ int main(void)
     //                    }else fprintf(fred, "%i,", s[j][l]);
     //                }
     //           }
-    //           fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red 
+    //          fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red 
 
                 Itotal=Itotal+I; //Sumo el número de infectados en el paso temporal al contador
 
@@ -161,6 +203,8 @@ int main(void)
             }
             Rmedia=Rmedia+Itotal;
             Rmediacuadrado=Rmediacuadrado+(Itotal*Itotal);
+
+            reconfigurar=reconfigurar+1;
         }
         desviacion=sqrt( (Rmediacuadrado/Nsim)-(Rmedia*Rmedia)/(Nsim*Nsim) ); //Calculo la desviación típica para sacar el error
         error=desviacion/sqrt(Nsim);
