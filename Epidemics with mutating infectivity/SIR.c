@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////
-// Programa que modela la propagación de epidemias con mutaciones,     //                                                                     //
+// Programa que modela la propagación de epidemias básica              //                                                                     //
 /////////////////////////////////////////////////////////////////////////
 
 #include<stdlib.h>
