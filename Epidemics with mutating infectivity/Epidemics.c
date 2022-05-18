@@ -26,7 +26,7 @@ int main(void)
     int sigo; //Decide si se sigue contando el tiempo
     double Rmedia, Rmediacuadrado; //Número medio de infectados por simulación
     double desviacion, error; //la desviación típica para calcular el error
-    int I; //Esta es la cantidad de nodos infectados en la iteración dada 
+    int I, Itotal; //Esta es la cantidad de nodos infectados en la iteración dada 
     FILE *fred; //Fichero donde se guarda la red en cada iteración
     FILE *fresultados; //Fichero donde se escriben los resultados de las simulaciones 
     int s[N][N]; //La red como tal
@@ -48,11 +48,9 @@ int main(void)
         simulaciones=0;
         for(simulaciones=0;simulaciones<Nsim;simulaciones++) //Número de simulaciones que se llevarán a cabo
         {
+            Itotal=0; //Este es el número total de infectados en la simulación
+
             //Inicializamos la matriz en la que, inicialmente, todos los nodos son susceptibles
-            for(i=0;i<M;i++)
-            {
-                x[i]=0; //0 es susceptible, +1 es Removed y -1 infectado, las mutaciones tendrán distintos números negativos
-            }
             for(i=0;i<M;i++)
             {
                 x[i]=0; //0 es susceptible, 1 es Removed y -1 infectado, las mutaciones tendrán distintos valores negativos
@@ -154,13 +152,15 @@ int main(void)
     //           }
     //           fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red 
 
-                Rmedia=Rmedia+I; //Sumo el número de infectados en el paso temporal al contador
-                Rmediacuadrado=Rmediacuadrado+(I*I);
+                Itotal=Itotal+I; //Sumo el número de infectados en el paso temporal al contador
+
                 if(I==0)
                 {
                     sigo=0; //Si no hubo infectados esta iteración damos por finalizada la simulación
                 }
             }
+            Rmedia=Rmedia+Itotal;
+            Rmediacuadrado=Rmediacuadrado+(Itotal*Itotal);
         }
         desviacion=sqrt( (Rmediacuadrado/Nsim)-(Rmedia*Rmedia)/(Nsim*Nsim) ); //Calculo la desviación típica para sacar el error
         error=desviacion/sqrt(Nsim);
