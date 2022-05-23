@@ -11,7 +11,7 @@
 #define p 0.1 //La probabilidad de recombinacion de la red
 #define chi 0.001 //La probabilidad de mutación de la enfermedad
 #define mu 1 //La probabilidad de recuperación de un infectado
-#define Nsim 1000 //Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
+#define Nsim 1000//Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
 
 int main(void)
@@ -62,7 +62,7 @@ int main(void)
                 x[i]=0; //0 es susceptible, 1 es Removed y -1 infectado, las mutaciones tendrán distintos valores negativos
             }
 
-            if(reconfigurar==0 || reconfigurar%1==0) //reconfiguro la matriz la primera vez y luego cada x iteraciones
+            if(reconfigurar==0 || reconfigurar%100==0) //reconfiguro la matriz la primera vez y luego cada x iteraciones
             {
                 //Inicializamos la matriz cuadrada regular en la que, inicialmente, todos los nodos son susceptibles
                 for(i=0;i<M;i++)
