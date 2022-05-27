@@ -7,7 +7,7 @@
 #include<math.h>
 #include"gsl_rng.h"
 
-#define N 20 //El tamaño de la red (NxN)
+#define N 30 //El tamaño de la red (NxN)
 #define mu 1 //La probabilidad de recuperación de un infectado
 #define Nsim 1000 //Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios

@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////
-// Programa que modela la propagación de epidemias con mutaciones,     //                                                                     //
+// Programa que modela la propagación de epidemias con mutaciones     //                                                                     
 /////////////////////////////////////////////////////////////////////////
 
 #include<stdlib.h>
@@ -23,7 +23,7 @@ int main(void)
     int x[M],xprima[M], A[M][M]; //El vector x contiene todos los nodos y su estado, la matriz A es la matriz de adyacencia, contiene la relación entre los nodos
     int aleatorioint; //Un número entero aleatorio
     double aleatorioreal; //Un número real aleatorio 
-    int sigo, reconfigurar; //Decide si se sigue contando el tiempo o se reconfiguran los enlaces 
+    int sigo; //Decide si se sigue contando el tiempo
     double Rmedia, Rmediacuadrado; //Número medio de infectados por simulación
     double desviacion, error; //la desviación típica para calcular el error
     int I, Itotal; //Esta es la cantidad de nodos infectados en la iteración dada 
@@ -46,7 +46,6 @@ int main(void)
         Rmedia=0; 
         Rmediacuadrado=0; //Inicializamos los valores de los contadores de infectados a 0
         simulaciones=0;
-        reconfigurar=0;
         for(simulaciones=0;simulaciones<Nsim;simulaciones++) //Número de simulaciones que se llevarán a cabo
         {
             //Cada simulación cambiamos la semilla para generar números aleatorios distintos cada vez
@@ -62,7 +61,7 @@ int main(void)
                 x[i]=0; //0 es susceptible, 1 es Removed y -1 infectado, las mutaciones tendrán distintos valores negativos
             }
 
-            if(reconfigurar==0 || reconfigurar%100==0) //reconfiguro la matriz la primera vez y luego cada x iteraciones
+            if(simulaciones==0 || simulaciones%100==0) //reconfiguro la matriz la primera vez y luego cada x iteraciones
             {
                 //Inicializamos la matriz cuadrada regular en la que, inicialmente, todos los nodos son susceptibles
                 for(i=0;i<M;i++)
@@ -204,8 +203,10 @@ int main(void)
             Rmedia=Rmedia+Itotal;
             Rmediacuadrado=Rmediacuadrado+(Itotal*Itotal);
 
-            reconfigurar=reconfigurar+1;
         }
+        desviacion=0;
+        error=0;
+
         desviacion=sqrt( (Rmediacuadrado/Nsim)-(Rmedia*Rmedia)/(Nsim*Nsim) ); //Calculo la desviación típica para sacar el error
         error=desviacion/sqrt(Nsim);
 
@@ -215,13 +216,13 @@ int main(void)
         //Ahora vamos a escribir en el fichero cuantos removed hubo de media en cada simulación
         fprintf(fresultados, "%lf\t%lf\t%lf\t%lf\n", lambda, Rmedia, error, Rmediacuadrado); 
 
-        if(lambda<0.4)
+        if(lambda<0.1) //Le doy mas sensibilidad en la zona critica tomando más valores de lambda ahi
         {
             lambda=lambda+0.05;
-        }else if(lambda<0.55)
+        }else if(lambda<0.2)
         {
             lambda=lambda+0.01;
-        }else if(lambda>=0.55)
+        }else if(lambda>=0.2)
         {
             lambda=lambda+0.05;
         }
