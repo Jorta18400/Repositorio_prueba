@@ -20,7 +20,7 @@ int main(void)
     int i,j,k,l,simulaciones; //Contadores enteros
     int M; //M es N²
     M=N*N;
-    int x[M],xprima[M], A[M][M]; //El vector x contiene todos los nodos y su estado, la matriz A es la matriz de adyacencia, contiene la relación entre los nodos
+    int x[M], xprima[M], A[M][M]; //El vector x contiene todos los nodos y su estado, la matriz A es la matriz de adyacencia, contiene la relación entre los nodos
     int aleatorioint; //Un número entero aleatorio
     double aleatorioreal; //Un número real aleatorio 
     int sigo; //Decide si se sigue contando el tiempo
@@ -204,8 +204,6 @@ int main(void)
             Rmediacuadrado=Rmediacuadrado+(Itotal*Itotal);
 
         }
-        desviacion=0;
-        error=0;
 
         desviacion=sqrt( (Rmediacuadrado/Nsim)-(Rmedia*Rmedia)/(Nsim*Nsim) ); //Calculo la desviación típica para sacar el error
         error=desviacion/sqrt(Nsim);
@@ -221,11 +219,13 @@ int main(void)
             lambda=lambda+0.05;
         }else if(lambda<0.2)
         {
-            lambda=lambda+0.01;
+            lambda=lambda+0.005;
+            
         }else if(lambda>=0.2)
         {
             lambda=lambda+0.05;
         }
+
     }
 
     fclose(fred);
