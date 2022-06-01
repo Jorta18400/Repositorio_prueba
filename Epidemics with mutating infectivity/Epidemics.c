@@ -161,7 +161,6 @@ int main(void)
                                 if(aleatorioreal<=lambda) xprima[j]=-1;
                             }
                         }
-
                             I++; //Contamos aquí los infectados, así nos aseguramos de contar solo 1 vez cada uno
                             xprima[i]=1; //Al final del paso el nodo queda en estado R
                     }
