@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////
-// Programa que modela la propagación de epidemias con mutaciones     //                                                                     
+// Programa que modela la propagación de epidemias en red small world  //                                                                     
 /////////////////////////////////////////////////////////////////////////
 
 #include<stdlib.h>
@@ -32,7 +32,7 @@ int main(void)
     int s[N][N]; //La red como tal
     double lambda; //La probabilidad de infectarse que tiene un nodo si su vecino esta infectado
 
-    lambda=0.1; //Valor inicial de lambda
+    lambda=0.05; //Valor inicial de lambda
 
     srand(time(NULL));
 
@@ -214,14 +214,14 @@ int main(void)
         //Ahora vamos a escribir en el fichero cuantos removed hubo de media en cada simulación
         fprintf(fresultados, "%lf\t%lf\t%lf\t%lf\n", lambda, Rmedia, error, Rmediacuadrado); 
 
-        if(lambda<0.1) //Le doy mas sensibilidad en la zona critica tomando más valores de lambda ahi
+        if(lambda<0) //Le doy mas sensibilidad en la zona critica tomando más valores de lambda ahi
         {
             lambda=lambda+0.05;
-        }else if(lambda<0.2)
+        }else if(lambda<0.15)
         {
-            lambda=lambda+0.005;
+            lambda=lambda+0.02;
             
-        }else if(lambda>=0.2)
+        }else if(lambda>=0.15)
         {
             lambda=lambda+0.05;
         }
