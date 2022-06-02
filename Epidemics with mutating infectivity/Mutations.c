@@ -11,7 +11,7 @@
 
 #define N 20 //El tamaño de la red (NxN)
 #define p 0.1 //La probabilidad de recombinacion de la red
-#define chi 0.1 //La probabilidad de mutación de la enfermedad
+#define chi 0.001 //La probabilidad de mutación de la enfermedad
 #define mu 1 //La probabilidad de recuperación de un infectado
 #define Nsim 1000//Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
@@ -170,10 +170,10 @@ int main(void)
                 {
                     for(j=0;j<M;j++)
                     {
-                        if(A[i][j]==1 && xprima[j]==0)
+                        if(A[i][j]==1 && xprima[j]==0) //queremos que haya conexión entre ambos nodos y el nodo al que miramos no esté infectado ya
                         {
                             aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1  
-                            if(aleatorioreal<=(chi/2))
+                            if(aleatorioreal<=(chi/2)) //Comprobamos si se produce la mutación
                             {
                                 aleatorioreal=gsl_rng_uniform(tau);
                                 if(aleatorioreal<=lambda[0])
@@ -222,19 +222,19 @@ int main(void)
                             else if((chi/2)<aleatorioreal && aleatorioreal<=chi)
                             {
                                 aleatorioreal=gsl_rng_uniform(tau);
-                                if(aleatorioreal<=lambda[0]) 
+                                if(aleatorioreal<=lambda[2]) 
                                 {
-                                    xprima[j]=-2; //Si se da la mutación pasamos a cepa supercrítica
-                                    I[0]++;
+                                    xprima[j]=-3; //Si se da la mutación pasamos a cepa supercrítica
+                                    I[2]++;
                                 }
                             } 
                             else
                             {
                                 aleatorioreal=gsl_rng_uniform(tau);
-                                if(aleatorioreal<=lambda[2])
+                                if(aleatorioreal<=lambda[0])
                                 {
-                                    xprima[j]=-1; //Si no se da ninguna mutación se infecta de la cepa del nodo vecino
-                                    I[2]++;
+                                    xprima[j]=-2; //Si no se da ninguna mutación se infecta de la cepa del nodo vecino
+                                    I[0]++;
                                 } 
                             }
                         }
@@ -259,19 +259,19 @@ int main(void)
                             else if((chi/2)<aleatorioreal && aleatorioreal<=chi)
                             {
                                 aleatorioreal=gsl_rng_uniform(tau);
-                                if(aleatorioreal<=lambda[2]) 
+                                if(aleatorioreal<=lambda[0]) 
                                 {
-                                    xprima[j]=-3; //Si se da la mutación pasamos a cepa supercrítica
-                                    I[2]++;
+                                    xprima[j]=-2; //Si se da la mutación pasamos a cepa supercrítica
+                                    I[0]++;
                                 }
                             } 
                             else
                             {
                                 aleatorioreal=gsl_rng_uniform(tau);
-                                if(aleatorioreal<=lambda[0])
+                                if(aleatorioreal<=lambda[2])
                                 {
-                                    xprima[j]=-1; //Si no se da ninguna mutación se infecta de la cepa del nodo vecino
-                                    I[0]++;
+                                    xprima[j]=-3; //Si no se da ninguna mutación se infecta de la cepa del nodo vecino
+                                    I[2]++;
                                 } 
                             }
                         }
