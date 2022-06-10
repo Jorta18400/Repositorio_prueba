@@ -27,8 +27,11 @@ int main(void)
     double Rmedia, Rmediacuadrado; //Número medio de infectados por simulación
     double desviacion, error; //la desviación típica para calcular el error
     int I, Itotal; //Esta es la cantidad de nodos infectados en la iteración dada 
+    int S, R; //Contadores de nodos en estados S y R
+    int t; //Contador de tiempo
     FILE *fred; //Fichero donde se guarda la red en cada iteración
     FILE *fresultados; //Fichero donde se escriben los resultados de las simulaciones 
+    FILE *ftiempo; //Fichero donde se guarda cuantos nodos estan en cada estado para cada paso de t
     int s[N][N]; //La red como tal
     double lambda; //La probabilidad de infectarse que tiene un nodo si su vecino esta infectado
 
@@ -38,8 +41,10 @@ int main(void)
 
     fred=fopen("Red.txt", "w"); //Abro el fichero
     fresultados=fopen("Resultados.txt", "w");
+    ftiempo=fopen("EvTemporalEpid.txt", "w");
 
     fprintf(fresultados, "Lambda\t\tRmedia(<x>)\tError\t<x²>\n"); 
+//    fprintf(ftiempo, "t\tS\tI\tR\n"); 
 
     while(lambda<1.0) //Este bucle aumenta lambda en cada ejecución y así hacemos un barrido
     {
@@ -54,6 +59,8 @@ int main(void)
             gsl_rng_set(tau,semilla); 
 
             Itotal=0; //Este es el número total de infectados en la simulación
+            S=M;
+            R=0;
 
             //Inicio el vector de nodos donde todos los nodos son susceptibles al principio
             for(i=0;i<M;i++)
@@ -135,6 +142,7 @@ int main(void)
             k=0;
             k=gsl_rng_uniform_int(tau,M); //Genero un entero aleatorio entre 0 y M-1 que decide la posición del nodo infectado
             x[k]=-1;
+            S--;
 
             //Ahora copio x en xprima, que será el vector donde hagamos las modificaciones
             for(i=0;i<M;i++)
@@ -158,10 +166,15 @@ int main(void)
                             if(A[i][j]==1 && xprima[j]==0)
                             {
                                 aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1  
-                                if(aleatorioreal<=lambda) xprima[j]=-1;
+                                if(aleatorioreal<=lambda)
+                                {
+                                    xprima[j]=-1;
+                                    I++;
+                                    S--;
+                                } 
                             }
                         }
-                            I++; //Contamos aquí los infectados, así nos aseguramos de contar solo 1 vez cada uno
+                            R++; //Contamos aquí los infectados, así nos aseguramos de contar solo 1 vez cada uno
                             xprima[i]=1; //Al final del paso el nodo queda en estado R
                     }
                 }
@@ -194,6 +207,9 @@ int main(void)
 
                 Itotal=Itotal+I; //Sumo el número de infectados en el paso temporal al contador
 
+                t++;
+//                fprintf(ftiempo, "%i\t%i\t%i\t%i\n", t, S, I, R); 
+
                 if(I==0)
                 {
                     sigo=0; //Si no hubo infectados esta iteración damos por finalizada la simulación
@@ -224,11 +240,11 @@ int main(void)
         {
             lambda=lambda+0.05;
         }
-
     }
 
     fclose(fred);
     fclose(fresultados);
+    fclose(ftiempo);
 
     return 0;
 }

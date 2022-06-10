@@ -10,10 +10,10 @@
 #include"gsl_rng.h"
 
 #define N 20 //El tamaño de la red (NxN)
-#define p 0.1 //La probabilidad de recombinacion de la red
+#define p 0.01 //La probabilidad de recombinacion de la red
 #define chi 0.001 //La probabilidad de mutación de la enfermedad
 #define mu 1 //La probabilidad de recuperación de un infectado
-#define Nsim 1000//Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
+#define Nsim 1000 //Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
 
 int main(void)
@@ -26,11 +26,12 @@ int main(void)
     int aleatorioint; //Un número entero aleatorio
     double aleatorioreal; //Un número real aleatorio 
     int sigo; //Decide si se sigue contando el tiempo
-    double Rmedia[3], Rmediacuadrado[3]; //Número medio de infectados por simulación
+    double Rmedia[3], Rmediacuadrado[3], Rtotal; //Número medio de infectados por simulación
     double desviacion[3], error[3]; //la desviación típica para calcular el error
     int I[3], Itotal[3]; //Esta es la cantidad de nodos infectados en la iteración dada 
     FILE *fred; //Fichero donde se guarda la red en cada iteración
     FILE *fresultados; //Fichero donde se escriben los resultados de las simulaciones 
+    FILE *frtotal; //Fichero donde se escriben el número de infectados en cada simulación
     int s[N][N]; //La red como tal
     double lambda[3]; //La probabilidad de infectarse que tiene un nodo si su vecino esta infectado
 
@@ -43,8 +44,10 @@ int main(void)
 
     fred=fopen("RedMut.txt", "w"); //Abro el fichero
     fresultados=fopen("ResultadosMut.txt", "w");
+    frtotal=fopen("Rtotal.txt", "w");
 
     fprintf(fresultados, "Lambda\t\tRmedia(<x>)\tError\t\t<x²>\n"); 
+    fprintf(frtotal, "Rtotal\tSubcritica\tCritica\tSupercritica\n");
 
     //Inicializamos los valores de los contadores de infectados a 0
     for(i=0;i<3;i++)
@@ -60,6 +63,8 @@ int main(void)
         int semilla=rand()%990001+1000; //genera una semilla aleatoria entre 10000 y 1000000 
         tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
         gsl_rng_set(tau,semilla); 
+
+        Rtotal=0;
 
         for(i=0;i<3;i++)
         {
@@ -145,7 +150,7 @@ int main(void)
         //Con la red ya inicializada y recombinada procedemos a infectar un nodo
         k=0;
         k=gsl_rng_uniform_int(tau,M); //Genero un entero aleatorio entre 0 y M-1 que decide la posición del nodo infectado
-        x[k]=-1; //De primeras infecto con la cepa normal, luego veremos si muta o que 
+        x[k]=-2; //De primeras infecto con la cepa subcrítica, luego veremos si muta o que 
 
         //Ahora copio x en xprima, que será el vector donde hagamos las modificaciones
         for(i=0;i<M;i++)
@@ -172,33 +177,21 @@ int main(void)
                     {
                         if(A[i][j]==1 && xprima[j]==0) //queremos que haya conexión entre ambos nodos y el nodo al que miramos no esté infectado ya
                         {
-                            aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1  
-                            if(aleatorioreal<=(chi/2)) //Comprobamos si se produce la mutación
+                            aleatorioreal=gsl_rng_uniform(tau);
+                            if(aleatorioreal<=lambda[1]) //Comprobamos si se da la infección
                             {
                                 aleatorioreal=gsl_rng_uniform(tau);
-                                if(aleatorioreal<=lambda[0])
+                                if(aleatorioreal<=(chi)) //Comprobamos si se produce la mutación
                                 {
                                     xprima[j]=-2; //Si se da la mutacion pasamos a la cepa subcrítica
-                                    I[0]++; //Contamos un infectado de esta cepa
-                                } 
-                            }
-                            else if((chi/2)<aleatorioreal && aleatorioreal<=chi)
-                            {
-                                aleatorioreal=gsl_rng_uniform(tau);
-                                if(aleatorioreal<=lambda[2]) 
-                                {
-                                    xprima[j]=-3; //Si se da la mutación pasamos a cepa supercrítica
-                                    I[2]++;
+                                    I[0]++; //Contamos un infectado de esta cepa                                    
                                 }
-                            } 
-                            else
-                            {
-                                aleatorioreal=gsl_rng_uniform(tau);
-                                if(aleatorioreal<=lambda[1])
+                                else //Si no se produce la mutación entonces el nuevo infectado se infectará con la lambda del nodo vecino que lo infecta
                                 {
-                                    xprima[j]=-1; //Si no se da ninguna mutación se infecta de la cepa del nodo vecino
+                                    xprima[j]=-1;
                                     I[1]++;
-                                } 
+                                }
+                                
                             }
                         }
                     }
@@ -209,33 +202,25 @@ int main(void)
                     {
                         if(A[i][j]==1 && xprima[j]==0)
                         {
-                            aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1  
-                            if(aleatorioreal<=(chi/2))
+                            aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1 
+                            if(aleatorioreal<=lambda[0])
                             {
                                 aleatorioreal=gsl_rng_uniform(tau);
-                                if(aleatorioreal<=lambda[1])
+                                if(aleatorioreal<=(chi/2))
                                 {
                                     xprima[j]=-1; //Si se da la mutacion pasamos a la cepa crítica
                                     I[1]++; //Contamos un infectado de esta cepa
-                                } 
-                            }
-                            else if((chi/2)<aleatorioreal && aleatorioreal<=chi)
-                            {
-                                aleatorioreal=gsl_rng_uniform(tau);
-                                if(aleatorioreal<=lambda[2]) 
+                                }
+                                else if((chi/2)<aleatorioreal && aleatorioreal<=chi)
                                 {
                                     xprima[j]=-3; //Si se da la mutación pasamos a cepa supercrítica
                                     I[2]++;
                                 }
-                            } 
-                            else
-                            {
-                                aleatorioreal=gsl_rng_uniform(tau);
-                                if(aleatorioreal<=lambda[0])
+                                else
                                 {
                                     xprima[j]=-2; //Si no se da ninguna mutación se infecta de la cepa del nodo vecino
                                     I[0]++;
-                                } 
+                                }
                             }
                         }
                     }
@@ -245,34 +230,21 @@ int main(void)
                     for(j=0;j<M;j++)
                     {
                         if(A[i][j]==1 && xprima[j]==0)
-                        {
-                            aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1  
-                            if(aleatorioreal<=(chi/2))
+                        {   
+                            aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1 
+                            if(aleatorioreal<=lambda[2])
                             {
                                 aleatorioreal=gsl_rng_uniform(tau);
-                                if(aleatorioreal<=lambda[1])
+                                if(aleatorioreal<=chi)
                                 {
-                                    xprima[j]=-1; //Si se da la mutacion pasamos a la cepa crítica
-                                    I[1]++; //Contamos un infectado de esta cepa
-                                } 
-                            }
-                            else if((chi/2)<aleatorioreal && aleatorioreal<=chi)
-                            {
-                                aleatorioreal=gsl_rng_uniform(tau);
-                                if(aleatorioreal<=lambda[0]) 
-                                {
-                                    xprima[j]=-2; //Si se da la mutación pasamos a cepa supercrítica
-                                    I[0]++;
+                                    xprima[j]=-2; //Si se da la mutación pasamos a cepa subcrítica
+                                    I[0]++; 
                                 }
-                            } 
-                            else
-                            {
-                                aleatorioreal=gsl_rng_uniform(tau);
-                                if(aleatorioreal<=lambda[2])
+                                else 
                                 {
                                     xprima[j]=-3; //Si no se da ninguna mutación se infecta de la cepa del nodo vecino
                                     I[2]++;
-                                } 
+                                }
                             }
                         }
                     }
@@ -286,26 +258,26 @@ int main(void)
             }
 
                 //Como prueba voy a escribir la matriz s y la escribo en fichero 
-    //            for(i=0;i<N;i++)
-    //            {
-    //                for(j=0;j<N;j++)
-    //                {
-    //                    s[i][j]=x[N*i+j];
-    //                }
-    //            }
+//                for(i=0;i<N;i++)
+//                {
+//                    for(j=0;j<N;j++)
+//                    {
+//                        s[i][j]=x[N*i+j];
+//                    }
+//                }
 
                 //Ahora vamos a escribir en fichero la posición inicial
-    //            for(j=0;j<N;j++)
-    //            {
-    //                for(l=0;l<N;l++)
-    //                {
-    //                   if(l==(N-1)) //Si es el último elemento de la fila hacemos salto de línea
-    //                    {
-    //                        fprintf(fred, "%i\n", s[j][l]);
-    //                    }else fprintf(fred, "%i,", s[j][l]);
-    //                }
-    //           }
-    //          fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red 
+//                for(j=0;j<N;j++)
+//                {
+//                    for(l=0;l<N;l++)
+//                    {
+//                       if(l==(N-1)) //Si es el último elemento de la fila hacemos salto de línea
+//                        {
+//                            fprintf(fred, "%i\n", s[j][l]);
+//                        }else fprintf(fred, "%i,", s[j][l]);
+//                    }
+//               }
+//              fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red 
 
             for(i=0;i<3;i++)
             {
@@ -324,6 +296,10 @@ int main(void)
             Rmediacuadrado[i]=Rmediacuadrado[i]+(Itotal[i]*Itotal[i]);
         }
 
+        Rtotal=Itotal[0]+Itotal[1]+Itotal[2]; //Calculo el número total de infectados como la suma de los infectados de cada cepa y lo escribo
+        Rtotal=(Rtotal*1.0)/M; //Normalizo el número de removed
+        fprintf(frtotal, "%lf\t%i\t%i\t%i\n", Rtotal, Itotal[0], Itotal[1], Itotal[2]);   
+
     }
 
     for(i=0;i<3;i++)
@@ -340,6 +316,7 @@ int main(void)
 
     fclose(fred);
     fclose(fresultados);
+    fclose(frtotal);
 
     return 0;
 }

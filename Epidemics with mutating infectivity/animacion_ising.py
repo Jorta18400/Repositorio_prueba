@@ -45,10 +45,10 @@ import io
 
 # Parámetros
 # ========================================
-file_in = "Red.txt" # Nombre del fichero de datos
-file_out = "Epidemic-WS-0.1-0.55" # Nombre del fichero de salida (sin extensión)
+file_in = "RedSIR.txt" # Nombre del fichero de datos
+file_out = "Epidemic-crit-SIR" # Nombre del fichero de salida (sin extensión)
 interval = 50 # Tiempo entre fotogramas en milisegundos
-save_to_file =True # False: muestra la animación por pantalla,
+save_to_file =False # False: muestra la animación por pantalla,
                      # True: la guarda en un fichero
 dpi = 250 # Calidad del vídeo de salida (dots per inch)
 
