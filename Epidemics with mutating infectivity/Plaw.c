@@ -9,7 +9,7 @@
 #include"gsl_rng.h"
 
 #define N 38 //El tamaño de la red (NxN)
-#define p 0.1 //La probabilidad de recombinacion de la red
+#define p 0.005 //La probabilidad de recombinacion de la red
 #define mu 1 //La probabilidad de recuperación de un infectado
 #define Nsim 1000 //Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
@@ -38,7 +38,7 @@ int main(void)
     lambda[1]=0.45;   //Los nodos infectados con la lambda normal tendran valor x[i]=-1
     lambda[2]=0.95; //Los nodos infectados con la lambda supercritica tendran valor x[i]=-3
 
-    chi=0.001; //La mutabilidad incial
+    chi=0.0001; //La mutabilidad incial
 
     srand(time(NULL));
 
@@ -48,7 +48,7 @@ int main(void)
     fprintf(fresultados, "Chi\t\tSweep\n"); 
     fprintf(frtotal, "Rtotal\tSubcritica\tCritica\tSupercritica\n");
 
-    while(chi<0.1)
+    while(chi<=0.1)
     {
         sweepfrac=0;
 
@@ -73,7 +73,7 @@ int main(void)
                 x[i]=0; //0 es susceptible, 1 es Removed y -1 infectado, las mutaciones tendrán distintos valores negativos
             }
 
-            if(simulaciones==0 || simulaciones%100==0) //reconfiguro la matriz la primera vez y luego cada x iteraciones
+            if(simulaciones==0 || simulaciones%50==0) //reconfiguro la matriz la primera vez y luego cada x iteraciones
             {
                 //Inicializamos la matriz cuadrada regular en la que, inicialmente, todos los nodos son susceptibles
                 for(i=0;i<M;i++)
@@ -279,7 +279,22 @@ int main(void)
         sweepfrac=100*sweepfrac/Nsim; //Pongo en forma de porcentaje la fracción de barrido.
         fprintf(fresultados, "%lf\t%lf\n", chi, sweepfrac); 
 
-        chi=chi+0.001;
+        if(chi<0.001) //Aumentamos chi tras acabar las simulaciones
+        {
+            chi=chi+0.0002;
+        }else if(chi<0.01)
+        {
+            chi=chi+0.005;
+        }else if(chi<0.05)
+        {
+            chi=chi+0.05;
+        }else if(chi!=0.1)
+        {
+            chi=0.1;
+        }else if(chi==0.1)
+        {
+            chi++;
+        }
 
     }
 
