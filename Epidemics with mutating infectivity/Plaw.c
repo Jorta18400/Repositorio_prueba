@@ -1,5 +1,6 @@
 /////////////////////////////////////////////////////////////////////////
-// Programa que modela la propagación de epidemias en red small world  //                                                                     
+// Programa que modela la propagación de epidemias en red small world  //
+// Con mutaciones, tratamos de encontrar power laws                    //                                                                    
 /////////////////////////////////////////////////////////////////////////
 
 #include<stdlib.h>
@@ -7,9 +8,8 @@
 #include<math.h>
 #include"gsl_rng.h"
 
-#define N 20 //El tamaño de la red (NxN)
-#define p 0.01 //La probabilidad de recombinacion de la red
-#define chi 0.001 //La probabilidad de mutación de la enfermedad
+#define N 38 //El tamaño de la red (NxN)
+#define p 0.1 //La probabilidad de recombinacion de la red
 #define mu 1 //La probabilidad de recuperación de un infectado
 #define Nsim 1000 //Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
@@ -24,32 +24,34 @@ int main(void)
     int aleatorioint; //Un número entero aleatorio
     double aleatorioreal; //Un número real aleatorio 
     int sigo; //Decide si se sigue contando el tiempo
-    double Rmedia, Rmediacuadrado; //Número medio de infectados por simulación
-    double desviacion, error; //la desviación típica para calcular el error
-    int I, Itotal; //Esta es la cantidad de nodos infectados en la iteración dada 
-    int S, R; //Contadores de nodos en estados S y R
-    int t; //Contador de tiempo
-    FILE *fred; //Fichero donde se guarda la red en cada iteración
+    double Rtotal; //Contea el número de infectados por simulación normalizado al tamaño de la red
+    int I[3], Itotal[3]; //Esta es la cantidad de nodos infectados en la iteración dada 
+    double chi; //La mutabilidad
+    double sweepfrac; //Contador para calcular el porcentaje de barrido
     FILE *fresultados; //Fichero donde se escriben los resultados de las simulaciones 
-    FILE *ftiempo; //Fichero donde se guarda cuantos nodos estan en cada estado para cada paso de t
+    FILE *frtotal; //Fichero donde se escriben el número de infectados en cada simulación
     int s[N][N]; //La red como tal
-    double lambda; //La probabilidad de infectarse que tiene un nodo si su vecino esta infectado
+    double lambda[3]; //La probabilidad de infectarse que tiene un nodo si su vecino esta infectado
 
-    lambda=0.05; //Valor inicial de lambda
+    //Valores iniciales de lambda
+    lambda[0]=0.35; //Los nodos infectados la lambda subcritica tendran valor x[i]=-2
+    lambda[1]=0.45;   //Los nodos infectados con la lambda normal tendran valor x[i]=-1
+    lambda[2]=0.95; //Los nodos infectados con la lambda supercritica tendran valor x[i]=-3
+
+    chi=0.001; //La mutabilidad incial
 
     srand(time(NULL));
 
-    fred=fopen("Red.txt", "w"); //Abro el fichero
-    fresultados=fopen("Resultados.txt", "w");
-    ftiempo=fopen("EvTemporalEpid.txt", "w");
+    fresultados=fopen("ResultadosPlaw.txt", "w");
+    frtotal=fopen("Rtotal.txt", "w");
 
-    fprintf(fresultados, "Lambda\t\tRmedia(<x>)\tError\t<x²>\n"); 
-//    fprintf(ftiempo, "t\tS\tI\tR\n"); 
+    fprintf(fresultados, "Chi\t\tSweep\n"); 
+    fprintf(frtotal, "Rtotal\tSubcritica\tCritica\tSupercritica\n");
 
-    while(lambda<1.0) //Este bucle aumenta lambda en cada ejecución y así hacemos un barrido
+    while(chi<0.1)
     {
-        Rmedia=0; 
-        Rmediacuadrado=0; //Inicializamos los valores de los contadores de infectados a 0
+        sweepfrac=0;
+
         simulaciones=0;
         for(simulaciones=0;simulaciones<Nsim;simulaciones++) //Número de simulaciones que se llevarán a cabo
         {
@@ -58,9 +60,12 @@ int main(void)
             tau=gsl_rng_alloc(gsl_rng_taus); //Este código nos permite después crear números aleatorios de calidad
             gsl_rng_set(tau,semilla); 
 
-            Itotal=0; //Este es el número total de infectados en la simulación
-            S=M;
-            R=0;
+            Rtotal=0;
+
+            for(i=0;i<3;i++)
+            {
+                Itotal[i]=0; //Este es el número total de infectados en la simulación
+            }    
 
             //Inicio el vector de nodos donde todos los nodos son susceptibles al principio
             for(i=0;i<M;i++)
@@ -131,7 +136,7 @@ int main(void)
                                     }
                                     //Si no se cumplieron los ifs se pasan de largo y se vuelve a intentar con otro k
                                 }
-                        
+                            
                             }
                         }
                     }
@@ -141,9 +146,8 @@ int main(void)
             //Con la red ya inicializada y recombinada procedemos a infectar un nodo
             k=0;
             k=gsl_rng_uniform_int(tau,M); //Genero un entero aleatorio entre 0 y M-1 que decide la posición del nodo infectado
-            x[k]=-1;
-            S--;
-            Itotal++;
+            x[k]=-2; //De primeras infecto con la cepa subcrítica
+            Itotal[0]++;
 
             //Ahora copio x en xprima, que será el vector donde hagamos las modificaciones
             for(i=0;i<M;i++)
@@ -155,98 +159,132 @@ int main(void)
             sigo=1; //Con esta variable entera decido cuando se acaba esta simulación
             while(sigo==1)
             {
-                I=0; //Inicializo a 0 I en cada iteración porque es el número de infectados solo en la iteración
+                for(i=0;i<3;i++)
+                {
+                    I[i]=0; //Inicializo a 0 I en cada iteración porque es el número de infectados solo en la iteración
+                }
 
                 //Comienzo recorriendo la matriz para ver si cada nodo se infecta o no
                 for(i=0;i<M;i++) 
-                {
+                {   //Hare un if para cada mutación, recorriendo la matriz y haciendo cosas distintas en función de que variante tenga el nodo
+
                     if(x[i]==-1) //Si resulta que el nodo está infectado, tengo que mirar sus vecinos y tirar los dados a ver si se infectan
+                    {
+                        for(j=0;j<M;j++)
+                        {
+                            if(A[i][j]==1 && xprima[j]==0) //queremos que haya conexión entre ambos nodos y el nodo al que miramos no esté infectado ya
+                            {
+                                aleatorioreal=gsl_rng_uniform(tau);
+                                if(aleatorioreal<=lambda[1]) //Comprobamos si se da la infección
+                                {
+                                    aleatorioreal=gsl_rng_uniform(tau);
+                                    if(aleatorioreal<=(chi)) //Comprobamos si se produce la mutación
+                                    {
+                                        xprima[j]=-2; //Si se da la mutacion pasamos a la cepa subcrítica
+                                        I[0]++; //Contamos un infectado de esta cepa                                  
+                                    }
+                                    else //Si no se produce la mutación entonces el nuevo infectado se infectará con la lambda del nodo vecino que lo infecta
+                                    {
+                                        xprima[j]=-1;
+                                        I[1]++;
+                                    }
+                                    
+                                }
+                            }
+                        }
+                        xprima[i]=1; //Al final del paso el nodo queda en estado R
+                    }else if(x[i]==-2) //Caso de cepa subcrítica
                     {
                         for(j=0;j<M;j++)
                         {
                             if(A[i][j]==1 && xprima[j]==0)
                             {
-                                aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1  
-                                if(aleatorioreal<=lambda)
+                                aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1 
+                                if(aleatorioreal<=lambda[0])
                                 {
-                                    xprima[j]=-1;
-                                    I++;
-                                    S--;
-                                } 
+                                    aleatorioreal=gsl_rng_uniform(tau);
+                                    if(aleatorioreal<=(chi/2))
+                                    {
+                                        xprima[j]=-1; //Si se da la mutacion pasamos a la cepa crítica
+                                        I[1]++; //Contamos un infectado de esta cepa
+                                    }
+                                    else if((chi/2)<aleatorioreal && aleatorioreal<=chi)
+                                    {
+                                        xprima[j]=-3; //Si se da la mutación pasamos a cepa supercrítica
+                                        I[2]++;
+                                    }
+                                    else
+                                    {
+                                        xprima[j]=-2; //Si no se da ninguna mutación se infecta de la cepa del nodo vecino
+                                        I[0]++;
+                                    }
+                                }
                             }
                         }
-                            R++; //Contamos aquí los infectados, así nos aseguramos de contar solo 1 vez cada uno
-                            xprima[i]=1; //Al final del paso el nodo queda en estado R
+                        xprima[i]=1; //Al final del paso el nodo queda en estado R
+                    }else if(x[i]==-3) //Caso de cepa supercrítica
+                    {
+                        for(j=0;j<M;j++)
+                        {
+                            if(A[i][j]==1 && xprima[j]==0)
+                            {   
+                                aleatorioreal=gsl_rng_uniform(tau); //Generamos un real entre 0 y 1 
+                                if(aleatorioreal<=lambda[2])
+                                {
+                                    aleatorioreal=gsl_rng_uniform(tau);
+                                    if(aleatorioreal<=chi)
+                                    {
+                                        xprima[j]=-2; //Si se da la mutación pasamos a cepa subcrítica
+                                        I[0]++; 
+                                    }
+                                    else 
+                                    {
+                                        xprima[j]=-3; //Si no se da ninguna mutación se infecta de la cepa del nodo vecino
+                                        I[2]++;
+                                    }
+                                }
+                            }
+                        }
+                        xprima[i]=1; //Al final del paso el nodo queda en estado R
                     }
+
                 }
                 for(i=0;i<M;i++)
                 {
                     x[i]=xprima[i]; //Hacemos efectivos los cambios de este paso temporal copiando xprima en x
                 }
 
-                //Como prueba voy a escribir la matriz s y la escribo en fichero 
-//                for(i=0;i<N;i++)
-//                {
-//                    for(j=0;j<N;j++)
-//                    {
-//                        s[i][j]=x[N*i+j];
-//                    }
-//                }
+                for(i=0;i<3;i++)
+                {
+                    Itotal[i]=Itotal[i]+I[i]; //Sumo el número de infectados en el paso temporal al contador
+                }
 
-                //Ahora vamos a escribir en fichero la posición inicial
-//                for(j=0;j<N;j++)
-//                {
-//                    for(l=0;l<N;l++)
-//                    {
-//                       if(l==(N-1)) //Si es el último elemento de la fila hacemos salto de línea
-//                        {
-//                            fprintf(fred, "%i\n", s[j][l]);
-//                        }else fprintf(fred, "%i,", s[j][l]);
-//                    }
-//               }
-//              fprintf(fred, "\n"); //Salto de línea para distinguir entre cada red 
-
-                Itotal=Itotal+I; //Sumo el número de infectados en el paso temporal al contador
-
-                t++;
-//                fprintf(ftiempo, "%i\t%i\t%i\t%i\n", t, S, I, R); 
-
-                if(I==0)
+                if(I[0]==0 && I[1]==0 && I[2]==0)
                 {
                     sigo=0; //Si no hubo infectados esta iteración damos por finalizada la simulación
                 }
             }
-            Rmedia=Rmedia+Itotal;
-            Rmediacuadrado=Rmediacuadrado+(Itotal*Itotal);
+
+            Rtotal=Itotal[0]+Itotal[1]+Itotal[2]; //Calculo el número total de infectados como la suma de los infectados de cada cepa y lo escribo
+            Rtotal=(Rtotal*1.0)/M; //Normalizo el número de removed
+//              fprintf(frtotal, "%lf\t%i\t%i\t%i\n", Rtotal, Itotal[0], Itotal[1], Itotal[2]); 
+
+            if(Rtotal>=0.9)  
+            {
+                sweepfrac++; //Si se produjo un barrido aumentamos el contador
+            }
 
         }
 
-        desviacion=sqrt( (Rmediacuadrado/Nsim)-(Rmedia*Rmedia)/(Nsim*Nsim) ); //Calculo la desviación típica para sacar el error
-        error=desviacion/sqrt(Nsim);
+        sweepfrac=100*sweepfrac/Nsim; //Pongo en forma de porcentaje la fracción de barrido.
+        fprintf(fresultados, "%lf\t%lf\n", chi, sweepfrac); 
 
-        Rmedia=Rmedia/Nsim; //Esto sería ya <x> que es lo que represento en el archivo
-        Rmediacuadrado=Rmediacuadrado/Nsim; //Esto sería <x²>
+        chi=chi+0.001;
 
-        //Ahora vamos a escribir en el fichero cuantos removed hubo de media en cada simulación
-        fprintf(fresultados, "%lf\t%lf\t%lf\t%lf\n", lambda, Rmedia, error, Rmediacuadrado); 
-
-        if(lambda<0) //Le doy mas sensibilidad en la zona critica tomando más valores de lambda ahi
-        {
-            lambda=lambda+0.05;
-        }else if(lambda<0.15)
-        {
-            lambda=lambda+0.02;
-            
-        }else if(lambda>=0.15)
-        {
-            lambda=lambda+0.05;
-        }
     }
 
-    fclose(fred);
     fclose(fresultados);
-    fclose(ftiempo);
+    fclose(frtotal);
 
     return 0;
 }
-

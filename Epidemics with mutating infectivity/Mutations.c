@@ -10,7 +10,7 @@
 #include"gsl_rng.h"
 
 #define N 20 //El tamaño de la red (NxN)
-#define p 0.01 //La probabilidad de recombinacion de la red
+#define p 0.1 //La probabilidad de recombinacion de la red
 #define chi 0.001 //La probabilidad de mutación de la enfermedad
 #define mu 1 //La probabilidad de recuperación de un infectado
 #define Nsim 1000 //Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
@@ -29,9 +29,12 @@ int main(void)
     double Rmedia[3], Rmediacuadrado[3], Rtotal; //Número medio de infectados por simulación
     double desviacion[3], error[3]; //la desviación típica para calcular el error
     int I[3], Itotal[3]; //Esta es la cantidad de nodos infectados en la iteración dada 
+    int S, R; //Contador susceptibles y recuperados
+    int t; //Contador de tiempo
     FILE *fred; //Fichero donde se guarda la red en cada iteración
     FILE *fresultados; //Fichero donde se escriben los resultados de las simulaciones 
     FILE *frtotal; //Fichero donde se escriben el número de infectados en cada simulación
+    FILE *ftiempo; //Fichero donde se escribe el estado en cada paso de t
     int s[N][N]; //La red como tal
     double lambda[3]; //La probabilidad de infectarse que tiene un nodo si su vecino esta infectado
 
@@ -45,9 +48,11 @@ int main(void)
     fred=fopen("RedMut.txt", "w"); //Abro el fichero
     fresultados=fopen("ResultadosMut.txt", "w");
     frtotal=fopen("Rtotal.txt", "w");
+    ftiempo=fopen("EvTemporalMut.txt", "w");
 
     fprintf(fresultados, "Lambda\t\tRmedia(<x>)\tError\t\t<x²>\n"); 
     fprintf(frtotal, "Rtotal\tSubcritica\tCritica\tSupercritica\n");
+    fprintf(ftiempo, "t\tS\tI[0]\tI[1]\tI[2]\tR\n");
 
     //Inicializamos los valores de los contadores de infectados a 0
     for(i=0;i<3;i++)
@@ -70,6 +75,8 @@ int main(void)
         {
             Itotal[i]=0; //Este es el número total de infectados en la simulación
         }    
+        S=M;
+        R=0;
 
         //Inicio el vector de nodos donde todos los nodos son susceptibles al principio
         for(i=0;i<M;i++)
@@ -150,7 +157,9 @@ int main(void)
         //Con la red ya inicializada y recombinada procedemos a infectar un nodo
         k=0;
         k=gsl_rng_uniform_int(tau,M); //Genero un entero aleatorio entre 0 y M-1 que decide la posición del nodo infectado
-        x[k]=-2; //De primeras infecto con la cepa subcrítica, luego veremos si muta o que 
+        x[k]=-2; //De primeras infecto con la cepa subcrítica
+        S--;
+        Itotal[0]++;
 
         //Ahora copio x en xprima, que será el vector donde hagamos las modificaciones
         for(i=0;i<M;i++)
@@ -184,18 +193,21 @@ int main(void)
                                 if(aleatorioreal<=(chi)) //Comprobamos si se produce la mutación
                                 {
                                     xprima[j]=-2; //Si se da la mutacion pasamos a la cepa subcrítica
-                                    I[0]++; //Contamos un infectado de esta cepa                                    
+                                    I[0]++; //Contamos un infectado de esta cepa   
+                                    S--;                                 
                                 }
                                 else //Si no se produce la mutación entonces el nuevo infectado se infectará con la lambda del nodo vecino que lo infecta
                                 {
                                     xprima[j]=-1;
                                     I[1]++;
+                                    S--;
                                 }
                                 
                             }
                         }
                     }
                     xprima[i]=1; //Al final del paso el nodo queda en estado R
+                    R++;
                 }else if(x[i]==-2) //Caso de cepa subcrítica
                 {
                     for(j=0;j<M;j++)
@@ -210,21 +222,25 @@ int main(void)
                                 {
                                     xprima[j]=-1; //Si se da la mutacion pasamos a la cepa crítica
                                     I[1]++; //Contamos un infectado de esta cepa
+                                    S--;
                                 }
                                 else if((chi/2)<aleatorioreal && aleatorioreal<=chi)
                                 {
                                     xprima[j]=-3; //Si se da la mutación pasamos a cepa supercrítica
                                     I[2]++;
+                                    S--;
                                 }
                                 else
                                 {
                                     xprima[j]=-2; //Si no se da ninguna mutación se infecta de la cepa del nodo vecino
                                     I[0]++;
+                                    S--;
                                 }
                             }
                         }
                     }
                     xprima[i]=1; //Al final del paso el nodo queda en estado R
+                    R++;
                 }else if(x[i]==-3) //Caso de cepa supercrítica
                 {
                     for(j=0;j<M;j++)
@@ -239,16 +255,19 @@ int main(void)
                                 {
                                     xprima[j]=-2; //Si se da la mutación pasamos a cepa subcrítica
                                     I[0]++; 
+                                    S--;
                                 }
                                 else 
                                 {
                                     xprima[j]=-3; //Si no se da ninguna mutación se infecta de la cepa del nodo vecino
                                     I[2]++;
+                                    S--;
                                 }
                             }
                         }
                     }
                     xprima[i]=1; //Al final del paso el nodo queda en estado R
+                    R++;
                 }
 
             }
@@ -284,6 +303,9 @@ int main(void)
                 Itotal[i]=Itotal[i]+I[i]; //Sumo el número de infectados en el paso temporal al contador
             }
 
+            t++;
+            fprintf(ftiempo, "%i\t%i\t%i\t\t%i\t\t%i\t\t%i\n", t, S, I[0], I[1], I[2], R);
+
             if(I[0]==0 && I[1]==0 && I[2]==0)
             {
                 sigo=0; //Si no hubo infectados esta iteración damos por finalizada la simulación
@@ -317,6 +339,7 @@ int main(void)
     fclose(fred);
     fclose(fresultados);
     fclose(frtotal);
+    fclose(ftiempo);
 
     return 0;
 }
