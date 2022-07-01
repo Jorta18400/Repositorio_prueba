@@ -10,8 +10,8 @@
 #include"gsl_rng.h"
 
 #define N 20 //El tamaño de la red (NxN)
-#define p 0.1 //La probabilidad de recombinacion de la red
-#define chi 0.001 //La probabilidad de mutación de la enfermedad
+#define p 0.01 //La probabilidad de recombinacion de la red
+#define chi 0.1 //La probabilidad de mutación de la enfermedad
 #define mu 1 //La probabilidad de recuperación de un infectado
 #define Nsim 1000 //Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
@@ -157,9 +157,9 @@ int main(void)
         //Con la red ya inicializada y recombinada procedemos a infectar un nodo
         k=0;
         k=gsl_rng_uniform_int(tau,M); //Genero un entero aleatorio entre 0 y M-1 que decide la posición del nodo infectado
-        x[k]=-2; //De primeras infecto con la cepa subcrítica
+        x[k]=-1; //De primeras infecto con la cepa crítica
         S--;
-        Itotal[0]++;
+        Itotal[1]++;
 
         //Ahora copio x en xprima, que será el vector donde hagamos las modificaciones
         for(i=0;i<M;i++)

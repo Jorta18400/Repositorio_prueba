@@ -9,7 +9,7 @@
 #include"gsl_rng.h"
 
 #define N 38 //El tamaño de la red (NxN)
-#define p 0.005 //La probabilidad de recombinacion de la red
+#define p 0.001 //La probabilidad de recombinacion de la red
 #define mu 1 //La probabilidad de recuperación de un infectado
 #define Nsim 1000 //Define el número de simulaciones que se van a llevar a cabo, cada simulación tiene tmax iteraciones
 gsl_rng *tau; //Definimos como variable general esto para generar los números aleatorios
@@ -25,9 +25,10 @@ int main(void)
     double aleatorioreal; //Un número real aleatorio 
     int sigo; //Decide si se sigue contando el tiempo
     double Rtotal; //Contea el número de infectados por simulación normalizado al tamaño de la red
+    int mut; //Nos dice cuantas mutaciones a la supercrítica se produjeron en una simulación
     int I[3], Itotal[3]; //Esta es la cantidad de nodos infectados en la iteración dada 
     double chi; //La mutabilidad
-    double sweepfrac; //Contador para calcular el porcentaje de barrido
+    double sweepfrac, mutfrac; //Contador para calcular el porcentaje de barrido y de mutacion
     FILE *fresultados; //Fichero donde se escriben los resultados de las simulaciones 
     FILE *frtotal; //Fichero donde se escriben el número de infectados en cada simulación
     int s[N][N]; //La red como tal
@@ -45,12 +46,13 @@ int main(void)
     fresultados=fopen("ResultadosPlaw.txt", "w");
     frtotal=fopen("Rtotal.txt", "w");
 
-    fprintf(fresultados, "Chi\t\tSweep\n"); 
+    fprintf(fresultados, "Chi\t\t\tSweep\t\tMutation\n"); 
     fprintf(frtotal, "Rtotal\tSubcritica\tCritica\tSupercritica\n");
 
     while(chi<=0.1)
     {
         sweepfrac=0;
+        mutfrac=0;
 
         simulaciones=0;
         for(simulaciones=0;simulaciones<Nsim;simulaciones++) //Número de simulaciones que se llevarán a cabo
@@ -61,6 +63,7 @@ int main(void)
             gsl_rng_set(tau,semilla); 
 
             Rtotal=0;
+            mut=0;
 
             for(i=0;i<3;i++)
             {
@@ -181,7 +184,7 @@ int main(void)
                                     if(aleatorioreal<=(chi)) //Comprobamos si se produce la mutación
                                     {
                                         xprima[j]=-2; //Si se da la mutacion pasamos a la cepa subcrítica
-                                        I[0]++; //Contamos un infectado de esta cepa                                  
+                                        I[0]++; //Contamos un infectado de esta cepa                               
                                     }
                                     else //Si no se produce la mutación entonces el nuevo infectado se infectará con la lambda del nodo vecino que lo infecta
                                     {
@@ -212,6 +215,7 @@ int main(void)
                                     {
                                         xprima[j]=-3; //Si se da la mutación pasamos a cepa supercrítica
                                         I[2]++;
+                                        mut++;
                                     }
                                     else
                                     {
@@ -273,11 +277,17 @@ int main(void)
             {
                 sweepfrac++; //Si se produjo un barrido aumentamos el contador
             }
+            if(mut>=1)
+            {
+                mutfrac++;
+            }
 
         }
 
-        sweepfrac=100*sweepfrac/Nsim; //Pongo en forma de porcentaje la fracción de barrido.
-        fprintf(fresultados, "%lf\t%lf\n", chi, sweepfrac); 
+        sweepfrac=100*sweepfrac/Nsim; //Pongo en forma de porcentaje las fracciones de barrido y mutación
+        mutfrac=100*mutfrac/Nsim;
+
+        fprintf(fresultados, "%lf\t%lf\t%lf\n", chi, sweepfrac, mutfrac); 
 
         if(chi<0.001) //Aumentamos chi tras acabar las simulaciones
         {
